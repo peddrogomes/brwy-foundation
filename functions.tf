@@ -15,11 +15,17 @@ resource "google_cloudfunctions_function" "hello_function" {
   description = "Print Hello Word"
   runtime     = "python310"
   entry_point = "main"
-  trigger_topic = google_pubsub_topic.hello_topic.name
+  event_trigger {
+    event_type = "google.pubsub.topic.publish"
+    resource = google_pubsub_topic.hello_topic.id
+  }
   source_archive_bucket = google_storage_bucket.function_bucket.name
   source_archive_object = google_storage_bucket_object.function_zip.name
   available_memory_mb   = 128
   region                = var.region
-  environment_variables = local.labels
+  environment_variables = {
+    is_prd = "True"
+  }
+  labels = local.labels
   
 }
