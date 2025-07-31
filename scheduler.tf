@@ -9,3 +9,4 @@ resource "google_cloud_scheduler_job" "hello_job" {
     data       = base64encode("Trigger Function")
   }
 }
+
