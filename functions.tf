@@ -4,7 +4,7 @@ resource "google_storage_bucket" "function_bucket" {
   force_destroy = true
 }
 
-data "arquive_file" "hello_function_zip" {
+data "archive_file" "hello_function_zip" {
     type = "zip"
     source_dir = "..scr/functions/hello_function"
     output_path = "functions/hello_function"
@@ -13,7 +13,7 @@ data "arquive_file" "hello_function_zip" {
 resource "google_storage_bucket_object" "hello_function_code" {
   name   = "hello_function.zip"
   bucket = google_storage_bucket.function_bucket.name
-  source = data.arquive_file.hello_function_code.output_path
+  source = data.archive_file.hello_function_code.output_path
 }
 
 resource "google_cloudfunctions_function" "hello_function" {
