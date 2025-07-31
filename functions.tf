@@ -6,7 +6,7 @@ resource "google_storage_bucket" "function_bucket" {
 
 data "archive_file" "hello_function_zip" {
     type = "zip"
-    source_dir = "..scr/functions/hello_function"
+    source_dir = "scr/functions/hello_function"
     output_path = "functions/hello_function"
 }
 
