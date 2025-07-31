@@ -20,6 +20,6 @@ resource "google_cloudfunctions_function" "hello_function" {
   source_archive_object = google_storage_bucket_object.function_zip.name
   available_memory_mb   = 128
   region                = var.region
-  environment_variables = var.labels
+  environment_variables = local.labels
   
 }
