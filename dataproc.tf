@@ -4,21 +4,12 @@
 #   description  = "Service account for Dataproc cluster and workflows"
 # }
 
-resource "google_storage_bucket" "dataproc-bucket" {
-  project = var.project
-  name = "${var.project}-dataproc"
-  force_destroy = false
-  uniform_bucket_level_access = true
-  location = var.region
-  labels = local.labels
-}
-
 resource "google_storage_bucket_object" "dataproc-code" {
-  for_each = fileset("../scr/dataproc", "**/*")
+  for_each = fileset("scr/dataproc", "**/*")
 
-  name = "dataproc/${each.value}"
+  name = "src/dataproc/${each.value}"
   bucket = google_storage_bucket.dataproc-bucket.name
-  source = "../scr/dataproc/${each.value}"
+  source = "scr/dataproc/${each.value}"
 }
 
 
