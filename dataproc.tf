@@ -75,6 +75,17 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
   name     = "brwy-pipeline-template"
   location = var.region
 
+  parameters {
+    name = "DATE"
+    description = "Date parameter for processing (format: YYYY-MM-DD)"
+    fields = ["DATE"]
+    validation {
+      regex {
+        regexes = ["\\d{4}-\\d{2}-\\d{2}"]
+      }
+    }
+  }
+
   placement {
     managed_cluster {
       cluster_name = "brwy-pipeline-cluster"
