@@ -16,6 +16,7 @@ VALID_EXTRACT_TYPES = ['all', 'by_type', 'by_state']
 # Environment variables
 PUBSUB_TOPIC = os.environ.get('PUBSUB_TOPIC')
 GCS_BUCKET_LANDING = os.environ.get('GCS_BUCKET_LANDING')
+TRIGGER_DATAPROC_TOPIC = os.environ.get('TRIGGER_DATAPROC_TOPIC')
 
 # Initialize clients
 publisher = pubsub_v1.PublisherClient()
@@ -247,8 +248,6 @@ def log_page_save_and_check_completion(page_number, date, status='completed'):
         # Trigger dataproc outside of transaction if needed
         if should_trigger_dataproc:
             trigger_dataproc()
-            logging.info("Dataproc triggered successfully after all pages "
-                        "completed.")
             
     except Exception as e:
         error_msg = f"Error logging page save to Firestore: {str(e)}"
@@ -288,5 +287,27 @@ def initialize_extraction_job(date, total_pages):
 
 
 def trigger_dataproc():
+    """Trigger Dataproc workflow via Pub/Sub"""
     logging.info("Triggering Dataproc job...")
-    # TODO: Trigger dataproc logic
+    
+    try:
+        date = datetime.now().strftime("%Y-%m-%d")
+        
+        # Prepare message for trigger-dataproc function
+        message_data = {
+            "steps": ["total-load", "total-transform"],
+            "date": date
+        }
+        
+        message_json = json.dumps(message_data)
+        message_bytes = message_json.encode('utf-8')
+        
+        # Publish message to trigger-dataproc topic
+        future = publisher.publish(TRIGGER_DATAPROC_TOPIC, message_bytes)
+        logging.info(f"Dataproc trigger message published: {future.result()}")
+            
+    except Exception as e:
+        error_msg = f"Error triggering Dataproc: {str(e)}"
+        logging.info(error_msg)
+        raise Exception(error_msg)
+

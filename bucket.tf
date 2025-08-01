@@ -1,4 +1,3 @@
-
 resource "google_storage_bucket" "landing" {
   project = var.project
   name = "${var.project}-landing"
@@ -16,3 +15,4 @@ resource "google_storage_bucket" "raw" {
   location = var.region
   labels = local.labels
 }
+

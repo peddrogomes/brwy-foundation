@@ -6,15 +6,21 @@ locals {
 
 variable "project" {
     type= string
-    description = "ID Google project"
+    description = "Google Cloud project ID"
 }
 
 variable "region" {
     type= string
-    description = "Region Google project"
+    description = "Google Cloud project region"
 }
 
 variable  "data-project" {
     type = string
     description = "Name of data pipeline project to use as resource prefix"
+}
+
+variable "subnet_name" {
+    type = string
+    description = "Subnet name for dataproc cluster"
+    default = "default"
 }
