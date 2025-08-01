@@ -79,11 +79,6 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
     name = "DATE"
     description = "Date parameter for processing (format: YYYY-MM-DD)"
     fields = ["DATE"]
-    validation {
-      regex {
-        regexes = ["\\d{4}-\\d{2}-\\d{2}"]
-      }
-    }
   }
 
   placement {
@@ -128,7 +123,7 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
     step_id = "total-load"
     pyspark_job {
       main_python_file_uri = "gs://${google_storage_bucket.dataproc-bucket.name}/src/dataproc/breweries/load/total-load.py"
-      args = ["{{DATE}}"]
+      args = ["${DATE}"]
     }
   }
 
@@ -136,7 +131,7 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
     step_id = "total-transform"
     pyspark_job {
       main_python_file_uri = "gs://${google_storage_bucket.dataproc-bucket.name}/src/dataproc/breweries/transform/total-transform.py"
-      args = ["{{DATE}}"]
+      args = ["${DATE}"]
     }
     prerequisite_step_ids = ["total-load"]
   }
