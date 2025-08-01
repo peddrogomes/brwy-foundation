@@ -33,6 +33,7 @@ resource "google_cloudfunctions_function" "api_extract" {
     # is_prd = "True"
     PUBSUB_TOPIC = google_pubsub_topic.api_extract_topic.id
     GCS_BUCKET_LANDING = google_storage_bucket.landing.name
+    
   }
   labels = local.labels
   
