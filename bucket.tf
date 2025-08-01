@@ -1,7 +1,7 @@
 
-resource "google_storage_bucket" "lnd" {
+resource "google_storage_bucket" "landing" {
   project = var.project
-  name = "${var.project}-lnd"
+  name = "${var.project}-landing"
   force_destroy = false
   uniform_bucket_level_access = true
   location = var.region
