@@ -19,6 +19,8 @@ GCS_BUCKET_LANDING = os.environ.get('GCS_BUCKET_LANDING')
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
+logging.getLogger().setLevel(logging.INFO)
+
 logger = logging.getLogger(__name__)
 
 # Initialize clients
