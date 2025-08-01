@@ -11,7 +11,7 @@ data "archive_file" "api_extract_zip" {
 }
 
 resource "google_storage_bucket_object" "api_extract_code" {
-  name   = "api-extract.zip"
+  name   = "${data.archive_file.api_extract_zip.output_path}_${data.archive_file.api_extract_zip.output_sha}.zip"
   bucket = google_storage_bucket.function_bucket.name
   source = data.archive_file.api_extract_zip.output_path
 }
