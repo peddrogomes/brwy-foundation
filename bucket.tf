@@ -19,7 +19,7 @@ resource "google_storage_bucket" "raw" {
 resource "google_storage_bucket" "dataproc-bucket" {
   project = var.project
   name = "${var.project}-dataproc-code"
-  force_destroy = false
+  force_destroy = true
   uniform_bucket_level_access = true
   location = var.region
   labels = local.labels

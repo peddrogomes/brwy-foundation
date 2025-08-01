@@ -1,8 +1,3 @@
-resource "google_storage_bucket" "function_bucket" {
-  name     = "${var.project}-function-bucket"
-  location = "${var.region}"
-  force_destroy = true
-}
 
 data "archive_file" "api_extract_zip" {
     type = "zip"
