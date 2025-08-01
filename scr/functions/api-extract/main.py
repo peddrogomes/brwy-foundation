@@ -261,24 +261,19 @@ def initialize_extraction_job(date, total_pages):
         job_doc_ref = firestore_client.collection(
             'extraction_jobs').document(date)
         
-        # Check if document already exists
-        job_doc = job_doc_ref.get()
+        # Always create/overwrite the document for reprocessing
+        job_data = {
+            'date': date,
+            'total_pages': total_pages,
+            'completed_pages': {},  # Clean dict for reprocessing
+            'dataproc_triggered': False,
+            'created_at': datetime.now(),
+            'last_update': datetime.now()
+        }
         
-        if not job_doc.exists:
-            job_data = {
-                'date': date,
-                'total_pages': total_pages,
-                'completed_pages': {},  # Changed to dict for structured data
-                'dataproc_triggered': False,
-                'created_at': datetime.now(),
-                'last_update': datetime.now()
-            }
-            
-            job_doc_ref.set(job_data)
-            logging.info(f"Initialized extraction job for {date} with "
-                        f"{total_pages} pages")
-        else:
-            logging.info(f"Extraction job for {date} already exists")
+        job_doc_ref.set(job_data)
+        logging.info(f"Initialized/reset extraction job for {date} with "
+                     f"{total_pages} pages")
             
     except Exception as e:
         error_msg = f"Error initializing extraction job in Firestore: {str(e)}"
