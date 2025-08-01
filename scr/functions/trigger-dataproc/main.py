@@ -40,11 +40,18 @@ def main(event, context):
     logging.info(f"Received steps: {steps}, date: {date}")
     
     try:
-        # Dataproc client
-        client = dataproc.WorkflowTemplateServiceClient()
+        # Dataproc client with regional endpoint
+        endpoint = f"{region}-dataproc.googleapis.com:443"
+        client_options = {"api_endpoint": endpoint}
+        client = dataproc.WorkflowTemplateServiceClient(
+            client_options=client_options
+        )
         
         # Configure workflow job
-        workflow_template_name = f"projects/{project_id}/regions/{region}/workflowTemplates/{template_name}"
+        workflow_template_name = (
+            f"projects/{project_id}/regions/{region}/"
+            f"workflowTemplates/{template_name}"
+        )
         
         # Parameters for template
         parameters = {
