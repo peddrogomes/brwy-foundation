@@ -66,7 +66,7 @@ def main(event, context):
             }
         )
         
-        logging.info(f"Workflow started successfully: {operation.name}")
+        logging.info(f"Workflow started successfully: {operation.result()}")
         
     except Exception as e:
         error_msg = (f"Error starting workflow: {str(e)}")

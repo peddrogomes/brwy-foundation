@@ -116,7 +116,7 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
           zone = "${var.region}-b"
           subnetwork             = var.subnet_name
         #   service_account        = google_service_account.dataproc-svc.email
-          service_account_scopes = ["cloud-platform"]
+          service_account_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
         }
       }
     }
