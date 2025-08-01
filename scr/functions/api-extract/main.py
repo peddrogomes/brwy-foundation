@@ -68,6 +68,8 @@ def main(event, context):
 
 def extract_all_breweries(extract_page):
     """Extract all breweries from the API"""
+    
+    date = datetime.now().strftime("%Y-%m-%d")
 
     if extract_page is None:
         # Extract metadata from the Open Brewery DB API
@@ -87,7 +89,7 @@ def extract_all_breweries(extract_page):
             raise Exception(error_msg)
 
         # Initialize extraction job in Firestore
-        date = datetime.now().strftime("%Y-%m-%d")
+        
         initialize_extraction_job(date, total_extract_pages)
 
         # Publish messages to Pub/Sub for each page
