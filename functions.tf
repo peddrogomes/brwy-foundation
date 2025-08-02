@@ -1,4 +1,3 @@
-
 data "archive_file" "api_extract_zip" {
     type = "zip"
     source_dir = "scr/functions/api-extract"
@@ -63,6 +62,7 @@ resource "google_cloudfunctions_function" "trigger_dataproc" {
   environment_variables = {
     GCP_PROJECT = var.project
     REGION = var.region
+    DATAPROC_TEMPLATE_NAME = "brwy-pipeline-template"
   }
   labels = local.labels
 }

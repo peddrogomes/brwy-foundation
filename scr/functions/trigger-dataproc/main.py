@@ -9,7 +9,7 @@ import base64
 
 project_id = os.environ.get('GCP_PROJECT')
 region = os.environ.get('REGION')
-template_name = 'brwy-pipeline-template'
+template_name = os.environ.get('DATAPROC_TEMPLATE_NAME')
 
 
 def main(event, context):
@@ -21,8 +21,8 @@ def main(event, context):
     logging.getLogger().setLevel(logging.INFO)
 
     if 'data' in event:
-        message = base64.b64decode(event['data']).decode('utf-8')
         try:
+            message = base64.b64decode(event['data']).decode('utf-8')
             message_data = json.loads(message)
             steps = message_data.get('steps')
             date = message_data.get('date')
@@ -30,11 +30,15 @@ def main(event, context):
         except json.JSONDecodeError as e:
             error_msg = (f"Error decoding JSON message: {message}. "
                          f"Error: {str(e)}")
-            logging.info(error_msg)
+            logging.error(error_msg)
+            raise Exception(error_msg)
+        except Exception as e:
+            error_msg = f"Error processing message: {str(e)}"
+            logging.error(error_msg)
             raise Exception(error_msg)
     else:
         error_msg = "No message received in trigger, forcing stop"
-        logging.info(error_msg)
+        logging.error(error_msg)
         raise Exception(error_msg)
     
     logging.info(f"Received steps: {steps}, date: {date}")
@@ -70,7 +74,7 @@ def main(event, context):
         
     except Exception as e:
         error_msg = (f"Error starting workflow: {str(e)}")
-        logging.info(error_msg)
+        logging.error(error_msg)
         raise Exception(error_msg)
     
     return 'OK'
