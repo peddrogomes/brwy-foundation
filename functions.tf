@@ -27,7 +27,7 @@ resource "google_cloudfunctions_function" "api_extract" {
   environment_variables = {
     # is_prd = "True"
     PUBSUB_TOPIC = google_pubsub_topic.api_extract_topic.id
-    GCS_BUCKET_LANDING = google_storage_bucket.landing.name
+    GCS_BUCKET_BRONZE = google_storage_bucket.bronze.name
     TRIGGER_DATAPROC_TOPIC = google_pubsub_topic.trigger_dataproc_topic.id
   }
   labels = local.labels

@@ -1,15 +1,15 @@
-resource "google_storage_bucket" "landing" {
+resource "google_storage_bucket" "bronze" {
   project = var.project
-  name = "${var.project}-landing"
+  name = "${var.project}-bronze"
   force_destroy = false
   uniform_bucket_level_access = true
   location = var.region
   labels = local.labels
 }
 
-resource "google_storage_bucket" "raw" {
+resource "google_storage_bucket" "silver" {
   project = var.data-project
-  name = "${var.project}-raw"
+  name = "${var.project}-silver"
   force_destroy = false
   uniform_bucket_level_access = true
   location = var.region

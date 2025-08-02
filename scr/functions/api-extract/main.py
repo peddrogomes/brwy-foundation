@@ -15,7 +15,7 @@ VALID_EXTRACT_TYPES = ['all', 'by_type', 'by_state']
 
 # Environment variables
 PUBSUB_TOPIC = os.environ.get('PUBSUB_TOPIC')
-GCS_BUCKET_LANDING = os.environ.get('GCS_BUCKET_LANDING')
+GCS_BUCKET_BRONZE = os.environ.get('GCS_BUCKET_BRONZE')
 TRIGGER_DATAPROC_TOPIC = os.environ.get('TRIGGER_DATAPROC_TOPIC')
 
 # Initialize clients
@@ -146,7 +146,7 @@ def extract_all_breweries(extract_page):
 def save_to_gcs(data: str, page_number: int, date: str):
     """Save data to Google Cloud Storage"""
     try:
-        bucket = storage_client.bucket(GCS_BUCKET_LANDING)
+        bucket = storage_client.bucket(GCS_BUCKET_BRONZE)
         
         filename = f"{date}/page_{page_number}.json"
         
@@ -157,7 +157,7 @@ def save_to_gcs(data: str, page_number: int, date: str):
             content_type='application/json'
         )
         
-        logging.info(f"Data saved to gs://{GCS_BUCKET_LANDING}/{filename}")
+        logging.info(f"Data saved to gs://{GCS_BUCKET_BRONZE}/{filename}")
             
     except Exception as e:
         error_msg = f"Error saving to GCS: {str(e)}"
