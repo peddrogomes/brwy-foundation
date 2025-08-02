@@ -9,8 +9,6 @@ date_param = sys.argv[1]
 bronze_bucket_arg = sys.argv[2]
 silver_bucket_arg = sys.argv[3]
 
-logging.getlogging().setLevel(logging.INFO)
-
 def define_brewery_schema():
     """
     Define the schema for brewery data based on the JSON structure
