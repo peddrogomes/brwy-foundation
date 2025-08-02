@@ -23,10 +23,14 @@ publisher = pubsub_v1.PublisherClient()
 storage_client = storage.Client()
 firestore_client = firestore.Client()
 
+logging.getLogger().setLevel(logging.INFO)
 
 def main(event, context):
-
-    logging.getLogger().setLevel(logging.INFO)
+    """
+    Extracts brewery data from Open Brewery DB API
+    and saves as JSON files to Cloud Storage bucket.
+    """
+    
     error_msg = None
 
     if 'data' in event:

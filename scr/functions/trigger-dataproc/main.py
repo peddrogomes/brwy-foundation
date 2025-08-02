@@ -1,8 +1,6 @@
 from google.cloud import dataproc_v1 as dataproc
-from google.cloud import storage
 import json
 import os
-from datetime import datetime
 import logging
 import base64
 
@@ -11,14 +9,13 @@ project_id = os.environ.get('GCP_PROJECT')
 region = os.environ.get('REGION')
 template_name = os.environ.get('DATAPROC_TEMPLATE_NAME')
 
+logging.getLogger().setLevel(logging.INFO)
 
 def main(event, context):
     """
     Cloud Function to trigger Dataproc Workflow Template via Pub/Sub
     Receives parameters: steps (list of steps) and date (date for processing)
     """
-    
-    logging.getLogger().setLevel(logging.INFO)
 
     if 'data' in event:
         try:

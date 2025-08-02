@@ -29,7 +29,7 @@ def main():
         print(f"Starting transformation process for {date_param}")
         
         # Here would be implemented the data transformation logic
-        # For example: read data from raw bucket, apply transformations
+        # For example: read data from silver bucket, apply transformations
         # and save to processed bucket
         
         print(f"Transformation completed successfully for {date_param}")
