@@ -10,6 +10,11 @@ date_param = sys.argv[1]
 bronze_bucket_arg = sys.argv[2]
 silver_bucket_arg = sys.argv[3]
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 def define_brewery_schema():
     """
