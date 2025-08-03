@@ -1,41 +1,175 @@
 import sys
+import logging
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import *
-from pyspark.sql.types import *
+from pyspark.sql.functions import (
+    col, when, isnan, regexp_replace, trim, upper, lower,
+    concat_ws, to_date, year, month, dayofmonth
+)
 from datetime import datetime
-from google.cloud import bigquery, storage
+
+
+
+date_param = sys.argv[1]
+silver_bucket_arg = sys.argv[2]
+project_id = sys.argv[3]
+dataset_id = sys.argv[4]
+
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+
+def clean_brewery_data(df):
+    """
+    Apply data cleaning and transformations to brewery data
+    """
+    logging.info("Starting data cleaning transformations")
+    
+    # Create full address field
+    df = df \
+        .withColumn("full_address",
+                    concat_ws(", ",
+                              col("address_line_1"),
+                              col("address_line_2"),
+                              col("address_line_3"),
+                              col("name_city"),
+                              col("name_state"),
+                              col("value_postal_code")))
+    
+    # Add date components for partitioning
+    df = df \
+        .withColumn("source_date",
+                    to_date(col("source_date"), "yyyy-MM-dd")) \
+        .withColumn("year", year(col("source_date"))) \
+        .withColumn("month", month(col("source_date"))) \
+        .withColumn("day", dayofmonth(col("source_date")))
+    
+    # Add has_coordinates flag
+    df = df \
+        .withColumn("has_coordinates",
+                    when((col("latitude").isNotNull()) &
+                         (col("longitude").isNotNull()), True)
+                    .otherwise(False))
+    
+    # Add has_contact_info flag
+    df = df \
+        .withColumn("has_contact_info",
+                    when((col("phone").isNotNull()) |
+                         (col("url_website").isNotNull()), True)
+                    .otherwise(False))
+    
+    logging.info("Data cleaning transformations completed")
+    return df
+
+
+def load_to_bigquery(df, project_id, dataset_id, table_name):
+    """
+    Load DataFrame to BigQuery table
+    """
+    logging.info(f"Loading data to BigQuery: "
+                 f"{project_id}.{dataset_id}.{table_name}")
+    
+    # Configure BigQuery options for optimized loading
+    df.write \
+        .format("bigquery") \
+        .option("table", f"{project_id}.{dataset_id}.{table_name}") \
+        .option("writeMethod", "direct") \
+        .option("partitionField", "source_date") \
+        .option("partitionType", "DAY") \
+        .option("clusteredFields", "name_state,type_brewery") \
+        .option("createDisposition", "CREATE_IF_NEEDED") \
+        .option("writeDisposition", "WRITE_APPEND") \
+        .mode("append") \
+        .save()
+    
+    logging.info("Data successfully loaded to BigQuery table")
+
+
+def transform_brewery_data(spark, silver_bucket, project_id,
+                          dataset_id, date_param):
+    """
+    Main transformation function
+    """
+    # Define input path for silver bucket data
+    input_path = f"gs://{silver_bucket}/breweries/date={date_param}"
+    
+    logging.info(f"Reading Parquet files from: {input_path}")
+    
+    try:
+        # Read data from silver bucket
+        df = spark.read.parquet(input_path)
+        
+        logging.info(f"Initial record count: {df.count()}")
+        
+        # Apply data cleaning and transformations
+        df_transformed = clean_brewery_data(df)
+        
+        # Data quality validation
+        final_count = df_transformed.count()
+        logging.info(f"Final record count after transformations: "
+                     f"{final_count}")
+        
+        # Check for required fields
+        null_brewery_ids = df_transformed.filter(
+            col("id_brewery").isNull()).count()
+        if null_brewery_ids > 0:
+            logging.warning(f"Found {null_brewery_ids} records with "
+                           f"null brewery IDs")
+        
+        # Load to BigQuery
+        load_to_bigquery(df_transformed, project_id, dataset_id,
+                        "breweries_all_data")
+        
+        logging.info("Transformation process completed successfully")
+        return final_count
+        
+    except Exception as e:
+        error_msg = f"Error during transformation: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
 
 
 def main():
     """
     Brewery data transformation script
-    Receives date as parameter: python total-transform.py YYYY-MM-DD
     """
-    
-    # Check if date was passed as parameter
-    if len(sys.argv) > 1:
-        date_param = sys.argv[1]
-        print(f"Processing transformations for date: {date_param}")
-    else:
-        date_param = datetime.now().strftime('%Y-%m-%d')
-        print(f"No date provided, using current date: {date_param}")
-    
-    # Initialize Spark Session
+    # Validate date format
+    try:
+        datetime.strptime(date_param, '%Y-%m-%d')
+    except ValueError:
+        error_msg = f"Error: Date must be in YYYY-MM-DD format: {date_param}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
+
+    logging.info(f"Processing transformations for date: {date_param}")
+    logging.info(f"Silver bucket: {silver_bucket_arg}")
+    logging.info(f"Project ID: {project_id}")
+    logging.info(f"Dataset ID: {dataset_id}")
+
+    # Initialize Spark Session with BigQuery connector
     spark = SparkSession.builder \
         .appName(f"Breweries Transform - {date_param}") \
+        .config("spark.sql.adaptive.enabled", "true") \
+        .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+        .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.32.0") \
         .getOrCreate()
     
     try:
-        print(f"Starting transformation process for {date_param}")
+        logging.info("Starting brewery data transformation process")
         
-        # Here would be implemented the data transformation logic
-        # For example: read data from silver bucket, apply transformations
-        # and save to processed bucket
+        # Execute transformation
+        record_count = transform_brewery_data(
+            spark, silver_bucket_arg, project_id, dataset_id, date_param
+        )
         
-        print(f"Transformation completed successfully for {date_param}")
+        logging.info(f"Transformation completed successfully. Records processed: {record_count}")
         
     except Exception as e:
-        print(f"Error during transformation process: {str(e)}")
+        logging.error(f"Error during transformation process: {str(e)}")
         raise e
     
     finally:
