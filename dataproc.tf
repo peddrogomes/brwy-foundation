@@ -12,6 +12,11 @@ resource "google_storage_bucket_object" "dataproc-code" {
   source = "scr/dataproc/${each.value}"
 }
 
+resource "google_storage_bucket_object" "init-script" {
+  name = "scripts/init_dataproc.sh"
+  bucket = google_storage_bucket.dataproc-bucket.name
+  source = "scripts/init_dataproc.sh"
+}
 
 resource "google_dataproc_workflow_template" "brwy_pipeline" {
   name     = "brwy-pipeline-template"
@@ -52,6 +57,21 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
 
         software_config {
           image_version = "2.0.66-debian10"
+          
+          # Configure Spark with BigQuery connector
+          properties = {
+            "spark:spark.jars.packages" = "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.32.0"
+            "spark:spark.sql.catalog.spark_catalog" = "com.google.cloud.spark.bigquery.v2.Spark31BigQueryTableProvider"
+            "spark:spark.sql.adaptive.enabled" = "true"
+            "spark:spark.sql.adaptive.coalescePartitions.enabled" = "true"
+            "spark:spark.serializer" = "org.apache.spark.serializer.KryoSerializer"
+            "spark:spark.dynamicAllocation.enabled" = "true"
+          }
+        }
+
+        initialization_actions {
+          executable_file = "gs://${google_storage_bucket.dataproc-bucket.name}/scripts/init_dataproc.sh"
+          execution_timeout = "300s"
         }
 
         gce_cluster_config {

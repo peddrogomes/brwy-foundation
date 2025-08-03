@@ -145,16 +145,9 @@ def main():
     logging.info(f"Project ID: {project_id}")
     logging.info(f"Dataset ID: {dataset_id}")
 
-    # Initialize Spark Session with BigQuery connector
+    # Initialize Spark Session
     spark = SparkSession.builder \
         .appName(f"Breweries Transform - {date_param}") \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
-        .config("spark.serializer",
-                "org.apache.spark.serializer.KryoSerializer") \
-        .config("spark.jars.packages",
-                "com.google.cloud.spark:"
-                "spark-bigquery-with-dependencies_2.12:0.32.0") \
         .getOrCreate()
 
     logging.info("Starting brewery data transformation process")
@@ -165,8 +158,7 @@ def main():
     )
     
     logging.info(f"Transformation completed successfully. "
-                    f"Records processed: {record_count}")
-    
+                 f"Records processed: {record_count}")
 
     spark.stop()
 

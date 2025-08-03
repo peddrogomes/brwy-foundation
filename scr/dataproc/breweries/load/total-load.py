@@ -141,13 +141,9 @@ def main():
     logging.info(f"Bronze bucket: {bronze_bucket_arg}")
     logging.info(f"Silver bucket: {silver_bucket_arg}")
 
-    # Initialize Spark Session with optimized configuration
+    # Initialize Spark Session
     spark = SparkSession.builder \
         .appName(f"Breweries Total Load - {date_param}") \
-        .config("spark.sql.adaptive.enabled", "true") \
-        .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
-        .config("spark.serializer",
-                "org.apache.spark.serializer.KryoSerializer") \
         .getOrCreate()
     
     logging.info(f"Starting brewery data load process for {date_param}")
