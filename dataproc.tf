@@ -56,7 +56,7 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
         }
 
         software_config {
-          image_version = "2.0.66-debian10"
+          image_version = "2.1-debian11"
           
           # Configure Spark with BigQuery connector
           properties = {
