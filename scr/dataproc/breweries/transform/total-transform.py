@@ -2,12 +2,9 @@ import sys
 import logging
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import (
-    col, when, isnan, regexp_replace, trim, upper, lower,
-    concat_ws, to_date, year, month, dayofmonth
+    col, when, concat_ws, to_date, year, month, dayofmonth
 )
 from datetime import datetime
-
-
 
 date_param = sys.argv[1]
 silver_bucket_arg = sys.argv[2]
@@ -89,7 +86,7 @@ def load_to_bigquery(df, project_id, dataset_id, table_name):
 
 
 def transform_brewery_data(spark, silver_bucket, project_id,
-                          dataset_id, date_param):
+                           dataset_id, date_param):
     """
     Main transformation function
     """
@@ -117,11 +114,11 @@ def transform_brewery_data(spark, silver_bucket, project_id,
             col("id_brewery").isNull()).count()
         if null_brewery_ids > 0:
             logging.warning(f"Found {null_brewery_ids} records with "
-                           f"null brewery IDs")
+                            f"null brewery IDs")
         
         # Load to BigQuery
         load_to_bigquery(df_transformed, project_id, dataset_id,
-                        "breweries_all_data")
+                         "breweries_all_data")
         
         logging.info("Transformation process completed successfully")
         return final_count
@@ -154,8 +151,11 @@ def main():
         .appName(f"Breweries Transform - {date_param}") \
         .config("spark.sql.adaptive.enabled", "true") \
         .config("spark.sql.adaptive.coalescePartitions.enabled", "true") \
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-        .config("spark.jars.packages", "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.32.0") \
+        .config("spark.serializer",
+                "org.apache.spark.serializer.KryoSerializer") \
+        .config("spark.jars.packages",
+                "com.google.cloud.spark:"
+                "spark-bigquery-with-dependencies_2.12:0.32.0") \
         .getOrCreate()
     
     try:
@@ -166,7 +166,8 @@ def main():
             spark, silver_bucket_arg, project_id, dataset_id, date_param
         )
         
-        logging.info(f"Transformation completed successfully. Records processed: {record_count}")
+        logging.info(f"Transformation completed successfully. "
+                     f"Records processed: {record_count}")
         
     except Exception as e:
         logging.error(f"Error during transformation process: {str(e)}")

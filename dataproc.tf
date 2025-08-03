@@ -68,7 +68,11 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
     step_id = "total-load"
     pyspark_job {
       main_python_file_uri = "gs://${google_storage_bucket.dataproc-bucket.name}/src/dataproc/breweries/load/total-load.py"
-      args = ["DATE", google_storage_bucket.bronze.name, google_storage_bucket.silver.name]
+      args = [
+        "DATE", 
+        google_storage_bucket.bronze.name, 
+        google_storage_bucket.silver.name
+      ]
     }
   }
 
@@ -76,7 +80,12 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
     step_id = "total-transform"
     pyspark_job {
       main_python_file_uri = "gs://${google_storage_bucket.dataproc-bucket.name}/src/dataproc/breweries/transform/total-transform.py"
-      args = ["DATE", google_storage_bucket.bronze.name, google_storage_bucket.silver.name]
+      args = [
+        "DATE", 
+        google_storage_bucket.silver.name, 
+        var.project, 
+        google_bigquery_dataset.breweries_foundation.dataset_id
+      ]
     }
     prerequisite_step_ids = ["total-load"]
   }
