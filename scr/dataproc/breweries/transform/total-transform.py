@@ -73,13 +73,12 @@ def load_to_bigquery(df, project_id, dataset_id, table_name):
     df.write \
         .format("bigquery") \
         .option("table", f"{project_id}.{dataset_id}.{table_name}") \
-        .option("writeMethod", "direct") \
+        .option("writeMethod", "indirect") \
         .option("partitionField", "source_date") \
         .option("partitionType", "DAY") \
         .option("clusteredFields", "name_state,type_brewery") \
-        .option("createDisposition", "CREATE_IF_NEEDED") \
-        .option("writeDisposition", "WRITE_APPEND") \
-        .mode("append") \
+        .option("createDisposition", "CREATE_NEVER") \
+        .mode("overwrite") \
         .save()
     
     logging.info("Data successfully loaded to BigQuery table")
@@ -157,24 +156,19 @@ def main():
                 "com.google.cloud.spark:"
                 "spark-bigquery-with-dependencies_2.12:0.32.0") \
         .getOrCreate()
+
+    logging.info("Starting brewery data transformation process")
     
-    try:
-        logging.info("Starting brewery data transformation process")
-        
-        # Execute transformation
-        record_count = transform_brewery_data(
-            spark, silver_bucket_arg, project_id, dataset_id, date_param
-        )
-        
-        logging.info(f"Transformation completed successfully. "
-                     f"Records processed: {record_count}")
-        
-    except Exception as e:
-        logging.error(f"Error during transformation process: {str(e)}")
-        raise e
+    # Execute transformation
+    record_count = transform_brewery_data(
+        spark, silver_bucket_arg, project_id, dataset_id, date_param
+    )
     
-    finally:
-        spark.stop()
+    logging.info(f"Transformation completed successfully. "
+                    f"Records processed: {record_count}")
+    
+
+    spark.stop()
 
 
 if __name__ == "__main__":
