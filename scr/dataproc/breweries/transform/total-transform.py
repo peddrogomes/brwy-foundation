@@ -10,6 +10,7 @@ date_param = sys.argv[1]
 silver_bucket_arg = sys.argv[2]
 project_id = sys.argv[3]
 dataset_id = sys.argv[4]
+temp_bucket = sys.argv[5]
 
 
 # Configure logging
@@ -74,6 +75,7 @@ def load_to_bigquery(df, project_id, dataset_id, table_name):
         .format("bigquery") \
         .option("table", f"{project_id}.{dataset_id}.{table_name}") \
         .option("writeMethod", "indirect") \
+        .option("temporaryGcsBucket", temp_bucket) \
         .option("partitionField", "source_date") \
         .option("partitionType", "DAY") \
         .option("clusteredFields", "name_state,type_brewery") \
@@ -144,6 +146,7 @@ def main():
     logging.info(f"Silver bucket: {silver_bucket_arg}")
     logging.info(f"Project ID: {project_id}")
     logging.info(f"Dataset ID: {dataset_id}")
+    logging.info(f"Temporary bucket: {temp_bucket}")
 
     # Initialize Spark Session
     spark = SparkSession.builder \

@@ -31,3 +31,21 @@ resource "google_storage_bucket" "function_bucket" {
   force_destroy = true
   labels = local.labels
 }
+
+resource "google_storage_bucket" "bigquery_temp" {
+  project = var.project
+  name = "${var.project}-bigquery-temp"
+  force_destroy = true
+  uniform_bucket_level_access = true
+  location = var.region
+  labels = local.labels
+  
+  lifecycle_rule {
+    condition {
+      age = 1
+    }
+    action {
+      type = "Delete"
+    }
+  }
+}
