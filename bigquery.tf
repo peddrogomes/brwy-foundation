@@ -4,7 +4,7 @@ resource "google_bigquery_dataset" "breweries_foundation" {
   friendly_name              = "Breweries Foundation Dataset"
   description                = "Dataset for storing brewery data and analytics"
   location                   = var.region
-  default_table_expiration_ms = 3600000  # 1 hour for temporary tables
+  # default_table_expiration_ms = 3600000  # 1 hour for temporary tables
 
   labels = {
     project = var.data-project
