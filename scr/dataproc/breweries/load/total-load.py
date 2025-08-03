@@ -2,12 +2,14 @@ import sys
 import logging
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import current_date, current_timestamp, lit
-from pyspark.sql.types import StructType, StructField, StringType, DoubleType
+from pyspark.sql.types import (StructType, StructField, StringType,
+                               DoubleType)
 from datetime import datetime
 
 date_param = sys.argv[1]
 bronze_bucket_arg = sys.argv[2]
 silver_bucket_arg = sys.argv[3]
+
 
 def define_brewery_schema():
     """
@@ -33,6 +35,36 @@ def define_brewery_schema():
     ])
 
 
+def rename_columns_to_standard(df):
+    """
+    Rename columns to standardized format with prefixes
+    """
+    column_mapping = {
+        "id": "id_brewery",
+        "name": "name_brewery",
+        "brewery_type": "type_brewery",
+        "address_1": "address_line_1",
+        "address_2": "address_line_2",
+        "address_3": "address_line_3",
+        "city": "name_city",
+        "state_province": "name_state_province",
+        "postal_code": "value_postal_code",
+        "country": "name_country",
+        "longitude": "longitude",
+        "latitude": "latitude",
+        "phone": "phone",
+        "website_url": "url_website",
+        "state": "name_state",
+        "street": "name_street"
+    }
+    
+    # Apply column renaming
+    for old_name, new_name in column_mapping.items():
+        df = df.withColumnRenamed(old_name, new_name)
+    
+    return df
+
+
 def load_brewery_data(spark, bronze_bucket, silver_bucket, date_param):
     """
     Load brewery data from bronze bucket JSON files and save as Parquet
@@ -54,8 +86,11 @@ def load_brewery_data(spark, bronze_bucket, silver_bucket, date_param):
             .schema(brewery_schema) \
             .json(input_path)
         
+        # Rename columns to standardized format
+        df_renamed = rename_columns_to_standard(df)
+        
         # Add processing metadata
-        df_with_metadata = df \
+        df_with_metadata = df_renamed \
             .withColumn("processing_date", current_date()) \
             .withColumn("processing_timestamp", current_timestamp()) \
             .withColumn("source_date", lit(date_param))
@@ -65,13 +100,12 @@ def load_brewery_data(spark, bronze_bucket, silver_bucket, date_param):
         logging.info(f"Total records loaded: {initial_count}")
         
         # Remove duplicates based on brewery id
-        df_clean = df_with_metadata.dropDuplicates(["id"])
+        df_clean = df_with_metadata.dropDuplicates(["id_brewery"])
         final_count = df_clean.count()
         
         if initial_count != final_count:
             duplicates_removed = initial_count - final_count
             logging.info(f"Removed {duplicates_removed} duplicate records")
-        
 
         # Save as Parquet with partitioning by source_date
         logging.info(f"Writing Parquet files to: {output_path}")
