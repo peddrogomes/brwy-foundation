@@ -192,7 +192,7 @@ resource "google_bigquery_table" "breweries_all_data" {
 resource "google_bigquery_table" "breweries_agg_type" {
   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
   table_id   = "breweries_agg_type"
-
+  depends_on = [google_bigquery_table.breweries_all_data]
   description = "Aggregated brewery data by type with counts, geographic distribution, and contact info metrics"
 
   view {
