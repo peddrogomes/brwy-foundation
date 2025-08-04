@@ -229,7 +229,7 @@ SELECT
         MAX(processing_timestamp) as last_updated
         
 
-      FROM `${var.project}.${google_bigquery_dataset.breweries_foundation.dataset_id}.${google_bigquery_table.breweries_all_data.table_id}`
+      FROM `${var.data-project}.${google_bigquery_dataset.breweries_foundation.dataset_id}.${google_bigquery_table.breweries_all_data.table_id}`
       GROUP BY type_brewery
       ORDER BY total_breweries DESC
     EOF
