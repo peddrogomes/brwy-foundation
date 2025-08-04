@@ -2,6 +2,8 @@ locals {
     labels = {
         "data-project" = var.data-project
     }
+    
+    service_account = var.branch-hash == "" ? "966844133549-compute@developer.gserviceaccount.com" : "536022346875-compute@developer.gserviceaccount.com"
 }
 
 variable "project" {
