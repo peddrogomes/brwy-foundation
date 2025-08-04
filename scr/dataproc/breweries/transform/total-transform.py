@@ -5,6 +5,7 @@ from pyspark.sql.functions import (
     col, when, concat_ws, to_date, year, month, dayofmonth
 )
 from datetime import datetime
+from google.cloud import bigquery
 
 date_param = sys.argv[1]
 silver_bucket_arg = sys.argv[2]
@@ -63,25 +64,57 @@ def clean_brewery_data(df):
     return df
 
 
-def load_to_bigquery(df, project_id, dataset_id, table_name):
+def delete_partition(project_id, dataset_id, table_name, source_date):
+    """
+    Delete existing partition data for the given date
+    """
+    try:
+        client = bigquery.Client(project=project_id)
+        
+        delete_query = f"""
+        DELETE FROM `{project_id}.{dataset_id}.{table_name}`
+        WHERE DATE(source_date) = '{source_date}'
+        """
+        
+        logging.info(f"Executing partition deletion for date: {source_date}")
+        job = client.query(delete_query)
+        job.result()  # Wait for the job to complete
+        
+        logging.info(f"Successfully deleted partition data for {source_date}")
+        
+    except Exception as e:
+        error_msg = f"Could not delete partition data: {str(e)}"
+        logging.warning(error_msg)
+        raise Exception(error_msg)
+
+
+def load_to_bigquery(df, project_id, dataset_id, table_name, source_date):
     """
     Load DataFrame to BigQuery table
     """
     logging.info(f"Loading data to BigQuery: "
                  f"{project_id}.{dataset_id}.{table_name}")
     
-    # Configure BigQuery options for optimized loading
-    df.write \
-        .format("bigquery") \
-        .option("table", f"{project_id}.{dataset_id}.{table_name}") \
-        .option("writeMethod", "indirect") \
-        .option("temporaryGcsBucket", temp_bucket) \
-        .option("partitionField", "source_date") \
-        .option("partitionType", "DAY") \
-        .option("clusteredFields", "name_state,type_brewery") \
-        .option("createDisposition", "CREATE_NEVER") \
-        .mode("overwrite") \
-        .save()
+    # Delete existing partition data before loading new data
+    delete_partition(project_id, dataset_id, table_name, source_date)
+    
+    try:
+        # Configure BigQuery options for optimized loading
+        df.write \
+            .format("bigquery") \
+            .option("table", f"{project_id}.{dataset_id}.{table_name}") \
+            .option("writeMethod", "indirect") \
+            .option("temporaryGcsBucket", temp_bucket) \
+            .option("partitionField", "source_date") \
+            .option("partitionType", "DAY") \
+            .option("clusteredFields", "name_state,type_brewery") \
+            .option("createDisposition", "CREATE_NEVER") \
+            .mode("append") \
+            .save()
+    except Exception as e:
+        error_msg = f"Error loading data to BigQuery: {str(e)}"
+        logging.error(error_msg)
+        raise Exception(error_msg)
     
     logging.info("Data successfully loaded to BigQuery table")
 
@@ -117,17 +150,17 @@ def transform_brewery_data(spark, silver_bucket, project_id,
             logging.warning(f"Found {null_brewery_ids} records with "
                             f"null brewery IDs")
         
-        # Load to BigQuery
-        load_to_bigquery(df_transformed, project_id, dataset_id,
-                         "breweries_all_data")
-        
-        logging.info("Transformation process completed successfully")
-        return final_count
-        
     except Exception as e:
         error_msg = f"Error during transformation: {str(e)}"
         logging.error(error_msg)
         raise Exception(error_msg)
+            
+    # Load to BigQuery
+    load_to_bigquery(df_transformed, project_id, dataset_id,
+                        "breweries_all_data", date_param)
+    
+    logging.info("Transformation process completed successfully")
+    return final_count
 
 
 def main():

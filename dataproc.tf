@@ -61,7 +61,6 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
           # Configure Spark with BigQuery connector
           properties = {
             "spark:spark.jars.packages" = "com.google.cloud.spark:spark-bigquery-with-dependencies_2.12:0.32.0"
-            # "spark:spark.sql.catalog.spark_catalog" = "com.google.cloud.spark.bigquery.v2.Spark31BigQueryTableProvider"
             "spark:spark.sql.adaptive.enabled" = "true"
             "spark:spark.sql.adaptive.coalescePartitions.enabled" = "true"
             "spark:spark.serializer" = "org.apache.spark.serializer.KryoSerializer"
@@ -77,7 +76,6 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
         gce_cluster_config {
           zone = "${var.region}-b"
           subnetwork             = var.subnet_name
-        #   service_account        = google_service_account.dataproc-svc.email
           service_account_scopes = ["https://www.googleapis.com/auth/cloud-platform"]
         }
       }
