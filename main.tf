@@ -1,7 +1,7 @@
 terraform {
     backend "gcs" { 
       bucket  = "brwy-terraform-state"
-      prefix  = "prod"
+      # prefix  = "prod"
     }
     required_providers {
       google = "~> 6.46.0"

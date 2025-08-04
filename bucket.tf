@@ -26,9 +26,11 @@ resource "google_storage_bucket" "dataproc-bucket" {
 }
 
 resource "google_storage_bucket" "function_bucket" {
+  project  = var.project
   name     = "${var.project}-function-code${var.branch-hash}"
-  location = "${var.region}"
+  location = var.region
   force_destroy = true
+  uniform_bucket_level_access = true
   labels = local.labels
 }
 
