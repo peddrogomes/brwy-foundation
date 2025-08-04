@@ -102,7 +102,7 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
         "DATE", 
         google_storage_bucket.silver.name, 
         var.project, 
-        google_bigquery_dataset.breweries_foundation.dataset_id,
+        # google_bigquery_dataset.breweries_foundation.dataset_id,
         google_storage_bucket.bigquery_temp.name
       ]
     }
