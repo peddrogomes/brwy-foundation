@@ -1,17 +1,17 @@
 # BigQuery Dataset for breweries data
 
-resource "google_bigquery_dataset" "breweries_foundation" {
-  project                    = var.data-project
-  dataset_id                  = "breweries_foundation${replace(var.branch-hash, "-", "_")}"
-  friendly_name              = "Breweries Foundation Dataset"
-  description                = "Dataset for storing brewery data and analytics"
-  location                   = var.region
-  labels = {
-    project = var.data-project
-    type    = "foundation"
-  }
+# resource "google_bigquery_dataset" "breweries_foundation" {
+#   project                    = var.data-project
+#   dataset_id                  = "breweries_foundation${replace(var.branch-hash, "-", "_")}"
+#   friendly_name              = "Breweries Foundation Dataset"
+#   description                = "Dataset for storing brewery data and analytics"
+#   location                   = var.region
+#   labels = {
+#     project = var.data-project
+#     type    = "foundation"
+#   }
 
-}
+# }
 
 # # Main breweries table with partitioning and clustering
 # resource "google_bigquery_table" "breweries_all_data" {
