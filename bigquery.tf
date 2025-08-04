@@ -4,7 +4,6 @@ resource "google_bigquery_dataset" "breweries_foundation" {
   friendly_name              = "Breweries Foundation Dataset"
   description                = "Dataset for storing brewery data and analytics"
   location                   = var.region
-  # default_table_expiration_ms = 3600000  # 1 hour for temporary tables
 
   labels = {
     project = var.data-project
@@ -185,3 +184,56 @@ resource "google_bigquery_table" "breweries_all_data" {
   }
 }
 
+# View: Aggregated data by brewery type
+resource "google_bigquery_table" "breweries_agg_type" {
+  dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
+  table_id   = "breweries_agg_type"
+
+  description = "Aggregated brewery data by type with counts, geographic distribution, and contact info metrics"
+
+  view {
+    query = <<-EOF
+SELECT
+        type_brewery,
+        COUNT(*) as total_breweries,
+        COUNT(DISTINCT name_country) as countries_count,
+        COUNT(DISTINCT name_state) as states_count,
+        COUNT(DISTINCT name_city) as cities_count,
+        
+        -- Geographic metrics
+        COUNTIF(has_coordinates = true) as breweries_with_coordinates,
+        ROUND(COUNTIF(has_coordinates = true) * 100.0 / COUNT(*), 2) as coordinates_percentage,
+        
+        -- Contact information metrics
+        COUNTIF(has_contact_info = true) as breweries_with_contact,
+        ROUND(COUNTIF(has_contact_info = true) * 100.0 / COUNT(*), 2) as contact_info_percentage,
+        
+        -- Website presence
+        COUNTIF(url_website IS NOT NULL) as breweries_with_website,
+        ROUND(COUNTIF(url_website IS NOT NULL) * 100.0 / COUNT(*), 2) as website_percentage,
+        
+        -- Phone presence
+        COUNTIF(phone IS NOT NULL) as breweries_with_phone,
+        ROUND(COUNTIF(phone IS NOT NULL) * 100.0 / COUNT(*), 2) as phone_percentage,
+        
+        -- Most recent data date
+        MAX(source_date) as latest_data_date,
+        MIN(source_date) as earliest_data_date,
+        
+        -- Last updated
+        MAX(processing_timestamp) as last_updated
+        
+
+      FROM `${var.project}.${google_bigquery_dataset.breweries_foundation.dataset_id}.${google_bigquery_table.breweries_all_data.table_id}`
+      GROUP BY type_brewery
+      ORDER BY total_breweries DESC
+    EOF
+    use_legacy_sql = false
+  }
+
+  labels = {
+    project = var.data-project
+    type    = "aggregated-view"
+    level   = "brewery-type"
+  }
+}
