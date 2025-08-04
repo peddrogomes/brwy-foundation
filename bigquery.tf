@@ -20,7 +20,7 @@ resource "google_bigquery_table" "breweries_all_data" {
 
   description = "Complete brewery data with transformations and data quality flags"
   
-  depends_on = [google_bigquery_dataset.breweries_foundation]
+  # depends_on = [google_bigquery_dataset.breweries_foundation]
 
   time_partitioning {
     type  = "DAY"
@@ -191,8 +191,9 @@ resource "google_bigquery_table" "breweries_all_data" {
 # View: Aggregated data by brewery type
 resource "google_bigquery_table" "breweries_agg_type" {
   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
+  project = var.data-project
   table_id   = "breweries_agg_type"
-  depends_on = [google_bigquery_table.breweries_all_data]
+  # depends_on = [google_bigquery_table.breweries_all_data]
   description = "Aggregated brewery data by type with counts, geographic distribution, and contact info metrics"
 
   view {
