@@ -2,7 +2,7 @@ name: 'Terraform'
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "*" ]
   pull_request:
 
 permissions:
@@ -31,10 +31,25 @@ jobs:
     - name: Setup terraform variables
       id: vars
       run: |-
+        # Determine environment and branch hash
+        if [ "${{ github.ref }}" = "refs/heads/main" ]; then
+          PROJECT="${{ vars.GCP_PROJECT }}"
+          DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}"
+          BRANCH_HASH=""
+        else
+          PROJECT="${{ vars.GCP_PROJECT }}-dev"
+          DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}-dev"
+          # Extract branch name and create hash
+          BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
+          BRANCH_HASH=$(echo -n "$BRANCH_NAME" | sha256sum | cut -c1-8)
+          BRANCH_HASH="-${BRANCH_HASH}"
+        fi
+        
         cat > pipeline.auto.tfvars <<EOF
         region="${{ vars.GCP_REGION }}" 
-        project="${{ vars.GCP_PROJECT }}" 
-        data-project="${{ vars.GCP_DATA_PROJECT }}"
+        project="$PROJECT" 
+        data-project="$DATA_PROJECT"
+        branch-hash="$BRANCH_HASH"
         EOF
         
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
@@ -56,7 +71,7 @@ jobs:
       # On push to "main", build or change infrastructure according to Terraform configuration files
       # Note: It is recommended to set up a required "strict" status check in your repository for "Terraform Cloud". See the documentation on "strict" required status checks for more information: https://help.github.com/en/github/administering-a-repository/types-of-required-status-checks
     - name: Terraform Apply
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      if: github.event_name == 'push'
       run: terraform apply -auto-approve -input=false
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}

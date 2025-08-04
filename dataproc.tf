@@ -19,7 +19,7 @@ resource "google_storage_bucket_object" "init-script" {
 }
 
 resource "google_dataproc_workflow_template" "brwy_pipeline" {
-  name     = "brwy-pipeline-template"
+  name     = "brwy-pipeline-template${var.branch-hash}"
   location = var.region
 
   parameters {
@@ -33,7 +33,7 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
 
   placement {
     managed_cluster {
-      cluster_name = "brwy-pipeline-cluster"
+      cluster_name = "brwy-pipeline-cluster${var.branch-hash}"
       config {
         staging_bucket = google_storage_bucket.dataproc-bucket.name
 

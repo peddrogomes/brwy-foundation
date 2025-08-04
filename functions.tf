@@ -11,7 +11,7 @@ resource "google_storage_bucket_object" "api_extract_code" {
 }
 
 resource "google_cloudfunctions_function" "api_extract" {
-  name        = "api-extract"
+  name        = "api-extract${var.branch-hash}"
   description = "Extracts brewery data from Open Brewery DB API and saves as JSON files to Cloud Storage bucket"
   runtime     = "python310"
   entry_point = "main"
@@ -46,7 +46,7 @@ resource "google_storage_bucket_object" "trigger_dataproc_code" {
 }
 
 resource "google_cloudfunctions_function" "trigger_dataproc" {
-  name        = "trigger-dataproc"
+  name        = "trigger-dataproc${var.branch-hash}"
   description = "Triggers Dataproc workflow template for data processing pipeline"
   runtime     = "python310"
   entry_point = "main"
@@ -62,7 +62,7 @@ resource "google_cloudfunctions_function" "trigger_dataproc" {
   environment_variables = {
     GCP_PROJECT = var.project
     REGION = var.region
-    DATAPROC_TEMPLATE_NAME = "brwy-pipeline-template"
+    DATAPROC_TEMPLATE_NAME = "brwy-pipeline-template${var.branch-hash}"
   }
   labels = local.labels
 }

@@ -1,5 +1,5 @@
 resource "google_cloud_scheduler_job" "api_extract_job" {
-  name             = "api-extract-scheduler-job"
+  name             = "api-extract-scheduler-job${var.branch-hash}"
   description      = "Triggers API Extract function to fetch brewery data from Open Brewery DB"
   schedule         = "0 9 * * *"
   time_zone        = "America/Sao_Paulo"
