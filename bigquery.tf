@@ -2,6 +2,7 @@
 
 resource "google_bigquery_dataset" "breweries_foundation" {
   project                    = var.data-project
+  location                   = var.region
   dataset_id                  = "breweries_foundation${replace(var.branch-hash, "-", "_")}"
   friendly_name              = "Breweries Foundation Dataset"
   description                = "Dataset for storing brewery data and analytics"
