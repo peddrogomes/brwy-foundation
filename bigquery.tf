@@ -19,6 +19,8 @@ resource "google_bigquery_table" "breweries_all_data" {
   table_id   = "breweries_all_data"
 
   description = "Complete brewery data with transformations and data quality flags"
+  
+  depends_on = [google_bigquery_dataset.breweries_foundation]
 
   time_partitioning {
     type  = "DAY"
