@@ -5,11 +5,11 @@ resource "google_storage_bucket_iam_member" "silver_editor" {
   member = "serviceAccount:${local.service_account}"
 }
 
-# # BigQuery permissions for Dataproc service account
-# resource "google_bigquery_dataset_iam_member" "breweries_foundation_editor" {
-#   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
-#   role       = "roles/bigquery.admin"
-#   member     = "serviceAccount:${local.service_account}"
+# BigQuery permissions for Dataproc service account
+resource "google_bigquery_dataset_iam_member" "breweries_foundation_editor" {
+  dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
+  role       = "roles/bigquery.admin"
+  member     = "serviceAccount:${local.service_account}"
   
-#   depends_on = [google_bigquery_dataset.breweries_foundation]
-# }
+  depends_on = [google_bigquery_dataset.breweries_foundation]
+}
