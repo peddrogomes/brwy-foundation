@@ -10,7 +10,6 @@ resource "google_bigquery_dataset" "breweries_foundation" {
     project = var.data-project
     type    = "foundation"
   }
-
 }
 
 # Main breweries table with partitioning and clustering
