@@ -4,6 +4,11 @@ on:
   push:
     branches: [ "*" ]
 
+# Concurrency control to prevent simultaneous execution
+concurrency:
+  group: terraform-${{ github.ref }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 

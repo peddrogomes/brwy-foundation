@@ -12,6 +12,18 @@ on:
   pull_request:
     branches: [ main ]
     types: [ opened, synchronize, reopened ]
+  
+  # Run after terraform workflow completes on PR pushes
+  workflow_run:
+    workflows: ["Terraform"]
+    types:
+      - completed
+    branches: [ "*" ]
+
+# Concurrency control to prevent simultaneous execution
+concurrency:
+  group: integration-test-${{ github.ref }}
+  cancel-in-progress: false
 
 permissions:
   contents: read
@@ -22,6 +34,18 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && fromJson(inputs.timeout_minutes || '30') || 30 }}
+    
+    # Only run if:
+    # 1. Manual dispatch, OR
+    # 2. Pull request event, OR  
+    # 3. Terraform workflow completed successfully and this is a PR branch
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request' ||
+      (github.event_name == 'workflow_run' && 
+       github.event.workflow_run.conclusion == 'success' &&
+       startsWith(github.ref, 'refs/heads/') && 
+       github.ref != 'refs/heads/main')
 
     defaults:
       run:
