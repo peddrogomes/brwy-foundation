@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "*" ]
 
-# Concurrency control to prevent simultaneous execution
+# Concurrency control to prevent simultaneous execution per workspace
 concurrency:
   group: terraform-${{ github.ref }}
   cancel-in-progress: false
@@ -35,22 +35,22 @@ jobs:
     - name: Setup terraform variables
       id: vars
       run: |-
-        # Determine environment and branch hash
+        # Determine environment, branch hash, and workspace
         if [ "${{ github.ref }}" = "refs/heads/main" ]; then
           PROJECT="${{ vars.GCP_PROJECT }}"
           DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}"
           BRANCH_HASH=""
+          WORKSPACE_NAME="main"
         else
           PROJECT="${{ vars.GCP_PROJECT }}-dev"
           DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}-dev"
           # Extract branch name and create hash
           BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
-          if [ -n "$BRANCH_NAME" ]; then
-            BRANCH_HASH=$(echo -n "$BRANCH_NAME" | sha256sum | cut -c1-8)
-            BRANCH_HASH="-${BRANCH_NAME}"
-          else
-            BRANCH_HASH=""
-          fi
+
+          BRANCH_HASH=$(echo -n "$BRANCH_NAME" | sha256sum | cut -c1-8)
+          BRANCH_HASH="-${BRANCH_NAME}"
+          WORKSPACE_NAME="branch-${BRANCH_NAME}"
+
         fi
         
         cat > pipeline.auto.tfvars <<EOF
@@ -60,9 +60,22 @@ jobs:
         branch-hash="$BRANCH_HASH"
         EOF
         
+        echo "workspace_name=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
+        echo "::notice::Using Terraform workspace: $WORKSPACE_NAME"
+        
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
     - name: Terraform Init
       run: terraform init
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }} 
+
+    # Create or select the appropriate workspace
+    - name: Create and select Terraform workspace
+      run: |
+        # Create workspace if it doesn't exist, otherwise select it
+        terraform workspace new "${{ steps.vars.outputs.workspace_name }}" || terraform workspace select "${{ steps.vars.outputs.workspace_name }}"
+        echo "::notice::Using Terraform workspace: ${{ steps.vars.outputs.workspace_name }}"
+        terraform workspace show
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }} 
 
