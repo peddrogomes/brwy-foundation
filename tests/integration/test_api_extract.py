@@ -97,7 +97,7 @@ class ApiExtractTester(BaseIntegrationTest):
                 for entry in entries:
                     log_text = str(entry.payload)
                     
-                    if "Extraction completed" in log_text:
+                    if "Triggering Dataproc" in log_text:
                         self.log_success("Function completed successfully")
                         return True
                     elif "Error" in log_text or entry.severity_name == "ERROR":
