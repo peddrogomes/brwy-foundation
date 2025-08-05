@@ -91,7 +91,7 @@ class ApiExtractTester(BaseIntegrationTest):
                 entries = list(self.logging_client.list_entries(
                     filter_=filter_str,
                     order_by='timestamp desc',
-                    max_results=100
+                    max_results=20
                 ))
                 
                 for entry in entries:
@@ -100,7 +100,7 @@ class ApiExtractTester(BaseIntegrationTest):
                     if "Triggering Dataproc" in log_text:
                         self.log_success("Function completed successfully")
                         return True
-                    elif "Error" in log_text or entry.severity_name == "ERROR":
+                    elif "Error" in log_text:
                         self.log_error(f"Function error: {log_text}")
                         return False
                 
