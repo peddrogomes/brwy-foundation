@@ -66,7 +66,7 @@ jobs:
 
     - name: Install Python dependencies for testing
       run: |
-        pip install google-cloud-logging google-cloud-pubsub google-cloud-dataproc google-cloud-bigquery
+        pip install -r tests/requirements.txt
 
     - name: Setup terraform variables
       id: vars

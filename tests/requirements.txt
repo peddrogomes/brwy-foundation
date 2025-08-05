@@ -1,0 +1,14 @@
+# Google Cloud dependencies for integration testing
+google-cloud-logging>=3.8.0
+google-cloud-pubsub>=2.18.0
+google-cloud-dataproc>=5.4.0
+google-cloud-bigquery>=3.11.0
+google-cloud-storage>=2.10.0
+google-cloud-firestore>=2.13.0
+
+# HTTP requests library
+requests>=2.31.0
+
+# Additional testing utilities (optional)
+pytest>=7.4.0
+pytest-timeout>=2.1.0
