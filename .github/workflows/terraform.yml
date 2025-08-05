@@ -45,15 +45,19 @@ jobs:
           DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}-dev"
           # Extract branch name and create hash
           BRANCH_NAME=$(echo "${{ github.ref }}" | sed 's/refs\/heads\///')
-          BRANCH_HASH=$(echo -n "$BRANCH_NAME" | sha256sum | cut -c1-8)
-          BRANCH_HASH="-${BRANCH_HASH}"
+          if [ -n "$BRANCH_NAME" ]; then
+            BRANCH_HASH=$(echo -n "$BRANCH_NAME" | sha256sum | cut -c1-8)
+            BRANCH_HASH="-${BRANCH_NAME}"
+          else
+            BRANCH_HASH=""
+          fi
         fi
         
         cat > pipeline.auto.tfvars <<EOF
         region="${{ vars.GCP_REGION }}" 
         project="$PROJECT" 
         data-project="$DATA_PROJECT"
-        branch-hash="-$BRANCH_NAME"
+        branch-hash="$BRANCH_HASH"
         EOF
         
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
