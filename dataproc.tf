@@ -103,7 +103,8 @@ resource "google_dataproc_workflow_template" "brwy_pipeline" {
         google_storage_bucket.silver.name, 
         var.project, 
         google_bigquery_dataset.breweries_foundation.dataset_id,
-        google_storage_bucket.bigquery_temp.name
+        google_storage_bucket.bigquery_temp.name,
+        var.data-project
       ]
     }
     prerequisite_step_ids = ["total-load"]

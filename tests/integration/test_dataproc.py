@@ -20,17 +20,21 @@ class DataprocTester(BaseIntegrationTest):
         """Initialize the Dataproc tester."""
         super().__init__(config)
         
-        # Initialize clients
+        # Get credentials using the base class method
+        credentials = self._get_credentials()
         project = config.get('project')
         region = config.get('region')
         
-        self.logging_client = cloud_logging.Client(project=project)
+        # Initialize clients
+        self.logging_client = cloud_logging.Client(
+            project=project, credentials=credentials
+        )
         
         # Dataproc client
         endpoint = f"{region}-dataproc.googleapis.com:443"
         client_options = {"api_endpoint": endpoint}
         self.dataproc_client = dataproc.JobControllerClient(
-            client_options=client_options
+            client_options=client_options, credentials=credentials
         )
 
     def _execute_tests(self) -> bool:
@@ -50,7 +54,9 @@ class DataprocTester(BaseIntegrationTest):
         """Monitor trigger-dataproc function execution."""
         self.log_info("Monitoring trigger-dataproc function...")
         
-        function_name = self.config.get_resource_name('trigger_dataproc_function')
+        function_name = self.config.get_resource_name(
+            'trigger_dataproc_function'
+        )
         start_time = datetime.utcnow()
         timeout = timedelta(minutes=15)
         
@@ -101,7 +107,9 @@ class DataprocTester(BaseIntegrationTest):
                     dataproc.JobStatus.State.RUNNING,
                     dataproc.JobStatus.State.DONE
                 ]:
-                    self.log_success(f"Found active job: {job.reference.job_id}")
+                    self.log_success(
+                        f"Found active job: {job.reference.job_id}"
+                    )
                     self.results['job_id'] = job.reference.job_id
                     return True
                     

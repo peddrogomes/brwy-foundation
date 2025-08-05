@@ -6,7 +6,7 @@ resource "google_bigquery_dataset" "breweries_foundation" {
   dataset_id                  = "breweries_foundation${replace(var.branch-hash, "-", "_")}"
   friendly_name              = "Breweries Foundation Dataset"
   description                = "Dataset for storing brewery data and analytics"
-  delete_contents_on_destroy = local.enable_delete_protection
+  delete_contents_on_destroy = !local.enable_delete_protection
   labels = {
     project = var.data-project
     type    = "foundation"
@@ -18,7 +18,7 @@ resource "google_bigquery_table" "breweries_all_data" {
   project = var.data-project
   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
   table_id   = "breweries_all_data"
-
+  deletion_protection = !local.enable_delete_protection
   description = "Complete brewery data with transformations and data quality flags"
   
   depends_on = [google_bigquery_dataset.breweries_foundation]
@@ -193,6 +193,7 @@ resource "google_bigquery_table" "breweries_all_data" {
 resource "google_bigquery_table" "breweries_agg_type" {
   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
   project = var.data-project
+  deletion_protection = !local.enable_delete_protection
   table_id   = "breweries_agg_type"
   depends_on = [google_bigquery_dataset.breweries_foundation]
   description = "Aggregated brewery data by type with counts, geographic distribution, and contact info metrics"
@@ -241,5 +242,65 @@ SELECT
     project = var.data-project
     type    = "aggregated-view"
     level   = "brewery-type"
+  }
+}
+
+
+# View: Aggregated data by state
+resource "google_bigquery_table" "breweries_agg_state" {
+  dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
+  table_id   = "breweries_agg_state"
+
+  description = "Aggregated brewery data by state with type distribution"
+
+  project = var.data-project
+  deletion_protection = !local.enable_delete_protection
+  
+  depends_on = [google_bigquery_dataset.breweries_foundation]
+
+  view {
+    query = <<-EOF
+      SELECT
+        name_state,
+        COUNT(*) as total_breweries,
+        COUNT(DISTINCT name_country) as countries_count,
+        COUNT(DISTINCT name_state) as states_count,
+        COUNT(DISTINCT name_city) as cities_count,
+        
+        -- Geographic metrics
+        COUNTIF(has_coordinates = true) as breweries_with_coordinates,
+        ROUND(COUNTIF(has_coordinates = true) * 100.0 / COUNT(*), 2) as coordinates_percentage,
+        
+        -- Contact information metrics
+        COUNTIF(has_contact_info = true) as breweries_with_contact,
+        ROUND(COUNTIF(has_contact_info = true) * 100.0 / COUNT(*), 2) as contact_info_percentage,
+        
+        -- Website presence
+        COUNTIF(url_website IS NOT NULL) as breweries_with_website,
+        ROUND(COUNTIF(url_website IS NOT NULL) * 100.0 / COUNT(*), 2) as website_percentage,
+        
+        -- Phone presence
+        COUNTIF(phone IS NOT NULL) as breweries_with_phone,
+        ROUND(COUNTIF(phone IS NOT NULL) * 100.0 / COUNT(*), 2) as phone_percentage,
+        
+        -- Most recent data date
+        MAX(source_date) as latest_data_date,
+        MIN(source_date) as earliest_data_date,
+        
+        -- Last updated
+        MAX(processing_timestamp) as last_updated
+        
+
+      FROM `${var.data-project}.${google_bigquery_dataset.breweries_foundation.dataset_id}.${google_bigquery_table.breweries_all_data.table_id}`
+      GROUP BY name_state
+      ORDER BY total_breweries DESC
+    EOF
+    use_legacy_sql = false
+  }
+
+  labels = {
+    project = var.data-project
+    type    = "aggregated-view"
+    level   = "state"
   }
 }

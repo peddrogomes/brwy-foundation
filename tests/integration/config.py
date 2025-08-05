@@ -52,15 +52,22 @@ class TestConfig:
     def get_resource_name(self, resource_type: str) -> str:
         """Get standardized resource name."""
         branch_hash = self.config['branch_hash']
+        project = self.config['project']
+        data_project = self.config['data_project']
+        # For BigQuery dataset, replace hyphens with underscores as per Terraform
+        branch_hash_underscore = branch_hash.replace('-', '_')
         names = {
             'api_extract_topic': f"api-extract-topic{branch_hash}",
             'trigger_dataproc_topic': f"trigger-dataproc-topic{branch_hash}",
             'api_extract_function': f"api-extract{branch_hash}",
             'trigger_dataproc_function': f"trigger-dataproc{branch_hash}",
-            'bronze_bucket': f"brwy-bronze{branch_hash}",
-            'silver_bucket': f"brwy-silver{branch_hash}",
-            'functions_bucket': f"brwy-functions{branch_hash}",
-            'bigquery_table': f"{self.config['data_project']}.brwy_data.breweries"
+            'bronze_bucket': f"{project}-bronze{branch_hash}",
+            'silver_bucket': f"{project}-silver{branch_hash}",
+            'functions_bucket': f"{project}-function-code{branch_hash}",
+            'bigquery_table': (
+                f"{data_project}.breweries_foundation{branch_hash_underscore}"
+                f".breweries_all_data"
+            )
         }
         return names.get(resource_type, f"unknown-{resource_type}")
     

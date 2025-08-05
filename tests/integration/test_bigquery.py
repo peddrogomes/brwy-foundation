@@ -18,9 +18,12 @@ class BigQueryTester(BaseIntegrationTest):
         """Initialize the BigQuery tester."""
         super().__init__(config)
         
+        # Get credentials using the base class method
+        credentials = self._get_credentials()
+        
         # Initialize BigQuery client
         self.bigquery_client = bigquery.Client(
-            project=config.get('data_project')
+            project=config.get('data_project'), credentials=credentials
         )
 
     def _execute_tests(self) -> bool:
@@ -71,9 +74,9 @@ class BigQueryTester(BaseIntegrationTest):
         query = f"""
         SELECT
             COUNT(*) as record_count,
-            COUNT(DISTINCT id) as unique_breweries
+            COUNT(DISTINCT id_brewery) as unique_breweries
         FROM `{table_id}`
-        WHERE DATE(processed_date) = '{test_date}'
+        WHERE DATE(source_date) = '{test_date}'
         """
         
         try:
@@ -111,10 +114,11 @@ class BigQueryTester(BaseIntegrationTest):
         query = f"""
         SELECT
             COUNT(*) as total_records,
-            COUNT(CASE WHEN id IS NULL THEN 1 END) as null_ids,
-            COUNT(CASE WHEN name IS NULL OR name = '' THEN 1 END) as null_names
+            COUNT(CASE WHEN id_brewery IS NULL THEN 1 END) as null_ids,
+            COUNT(CASE WHEN name_brewery IS NULL OR name_brewery = ''
+                  THEN 1 END) as null_names
         FROM `{table_id}`
-        WHERE DATE(processed_date) = '{test_date}'
+        WHERE DATE(source_date) = '{test_date}'
         """
         
         try:
@@ -132,7 +136,10 @@ class BigQueryTester(BaseIntegrationTest):
                 
                 # Quality score
                 quality_issues = null_ids + null_names
-                quality_score = 1 - (quality_issues / total) if total > 0 else 0
+                if total > 0:
+                    quality_score = 1 - (quality_issues / total)
+                else:
+                    quality_score = 0
                 
                 self.log_info(f"Quality score: {quality_score:.2%}")
                 self.results['quality_score'] = quality_score

@@ -66,7 +66,7 @@ jobs:
 
     - name: Install Python dependencies for testing
       run: |
-        pip install google-cloud-logging google-cloud-pubsub google-cloud-dataproc google-cloud-bigquery
+        pip install -r tests/requirements.txt
 
     - name: Setup terraform variables
       id: vars
@@ -78,14 +78,14 @@ jobs:
         # Create unique hash for this test run to avoid conflicts
         TIMESTAMP=$(date +%s)
         TEST_HASH=$(echo -n "test-${TIMESTAMP}" | sha256sum | cut -c1-8)
-        BRANCH_HASH="-${TEST_HASH}"
+        BRANCH_HASH="${TEST_HASH}"
         RUN_ID="${{ github.run_id }}"
 
         # Set test date
         TEST_DATE=$(date +%Y-%m-%d)
         
         # Create unique workspace name for this test
-        WORKSPACE_NAME="-${BRANCH_HASH}"
+        WORKSPACE_NAME="test-${BRANCH_HASH}"
         
         cat > pipeline.auto.tfvars <<EOF
         region="${{ vars.GCP_REGION }}" 

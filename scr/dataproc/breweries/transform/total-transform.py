@@ -12,6 +12,7 @@ silver_bucket_arg = sys.argv[2]
 project_id = sys.argv[3]
 dataset_id = sys.argv[4]
 temp_bucket = sys.argv[5]
+data_project_id = sys.argv[6]
 
 
 # Configure logging
@@ -64,15 +65,15 @@ def clean_brewery_data(df):
     return df
 
 
-def delete_partition(project_id, dataset_id, table_name, source_date):
+def delete_partition(data_project_id, dataset_id, table_name, source_date):
     """
     Delete existing partition data for the given date
     """
     try:
-        client = bigquery.Client(project=project_id)
+        client = bigquery.Client(project=data_project_id)
         
         delete_query = f"""
-        DELETE FROM `{project_id}.{dataset_id}.{table_name}`
+        DELETE FROM `{data_project_id}.{dataset_id}.{table_name}`
         WHERE DATE(source_date) = '{source_date}'
         """
         
@@ -88,21 +89,21 @@ def delete_partition(project_id, dataset_id, table_name, source_date):
         raise Exception(error_msg)
 
 
-def load_to_bigquery(df, project_id, dataset_id, table_name, source_date):
+def load_to_bigquery(df, data_project_id, dataset_id, table_name, source_date):
     """
     Load DataFrame to BigQuery table
     """
     logging.info(f"Loading data to BigQuery: "
-                 f"{project_id}.{dataset_id}.{table_name}")
+                 f"{data_project_id}.{dataset_id}.{table_name}")
     
     # Delete existing partition data before loading new data
-    delete_partition(project_id, dataset_id, table_name, source_date)
+    delete_partition(data_project_id, dataset_id, table_name, source_date)
     
     try:
         # Configure BigQuery options for optimized loading
         df.write \
             .format("bigquery") \
-            .option("table", f"{project_id}.{dataset_id}.{table_name}") \
+            .option("table", f"{data_project_id}.{dataset_id}.{table_name}") \
             .option("writeMethod", "indirect") \
             .option("temporaryGcsBucket", temp_bucket) \
             .option("partitionField", "source_date") \
@@ -119,8 +120,8 @@ def load_to_bigquery(df, project_id, dataset_id, table_name, source_date):
     logging.info("Data successfully loaded to BigQuery table")
 
 
-def transform_brewery_data(spark, silver_bucket, project_id,
-                           dataset_id, date_param):
+def transform_brewery_data(spark, silver_bucket,
+                           dataset_id, data_project_id, date_param):
     """
     Main transformation function
     """
@@ -156,8 +157,8 @@ def transform_brewery_data(spark, silver_bucket, project_id,
         raise Exception(error_msg)
             
     # Load to BigQuery
-    load_to_bigquery(df_transformed, project_id, dataset_id,
-                        "breweries_all_data", date_param)
+    load_to_bigquery(df_transformed, data_project_id, dataset_id,
+                     "breweries_all_data", date_param)
     
     logging.info("Transformation process completed successfully")
     return final_count
@@ -180,6 +181,7 @@ def main():
     logging.info(f"Project ID: {project_id}")
     logging.info(f"Dataset ID: {dataset_id}")
     logging.info(f"Temporary bucket: {temp_bucket}")
+    logging.info(f"Data Project ID: {data_project_id}")
 
     # Initialize Spark Session
     spark = SparkSession.builder \
@@ -190,7 +192,8 @@ def main():
     
     # Execute transformation
     record_count = transform_brewery_data(
-        spark, silver_bucket_arg, project_id, dataset_id, date_param
+        spark, silver_bucket_arg, dataset_id,
+        data_project_id, date_param
     )
     
     logging.info(f"Transformation completed successfully. "

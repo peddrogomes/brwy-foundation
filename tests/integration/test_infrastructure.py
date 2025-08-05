@@ -18,9 +18,15 @@ class InfrastructureTester(BaseIntegrationTest):
         """Initialize the infrastructure tester."""
         super().__init__(config)
         
-        # Initialize clients
-        self.storage_client = storage.Client(project=config.get('project'))
-        self.publisher = pubsub_v1.PublisherClient()
+        # Get credentials using the base class method
+        credentials = self._get_credentials()
+        project = config.get('project')
+        
+        # Initialize Google Cloud clients
+        self.storage_client = storage.Client(
+            project=project, credentials=credentials
+        )
+        self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
 
     def _execute_tests(self) -> bool:
         """Run all infrastructure validation tests."""
