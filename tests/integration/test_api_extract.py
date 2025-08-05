@@ -91,7 +91,7 @@ class ApiExtractTester(BaseIntegrationTest):
                 entries = list(self.logging_client.list_entries(
                     filter_=filter_str,
                     order_by='timestamp desc',
-                    max_results=20
+                    max_results=100
                 ))
                 
                 for entry in entries:
