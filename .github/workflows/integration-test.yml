@@ -78,7 +78,7 @@ jobs:
         # Create unique hash for this test run to avoid conflicts
         TIMESTAMP=$(date +%s)
         TEST_HASH=$(echo -n "test-${TIMESTAMP}" | sha256sum | cut -c1-8)
-        BRANCH_HASH="-${TEST_HASH}"
+        BRANCH_HASH="${TEST_HASH}"
         RUN_ID="${{ github.run_id }}"
 
         # Set test date
