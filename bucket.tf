@@ -1,7 +1,7 @@
 resource "google_storage_bucket" "bronze" {
   project = var.project
   name = "${var.project}-bronze${var.branch-hash}"
-  force_destroy = false
+  force_destroy = local.enable_delete_protection
   uniform_bucket_level_access = true
   location = var.region
   labels = local.labels
@@ -10,7 +10,7 @@ resource "google_storage_bucket" "bronze" {
 resource "google_storage_bucket" "silver" {
   project = var.data-project
   name = "${var.project}-silver${var.branch-hash}"
-  force_destroy = false
+  force_destroy = local.enable_delete_protection
   uniform_bucket_level_access = true
   location = var.region
   labels = local.labels

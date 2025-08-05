@@ -4,6 +4,9 @@ locals {
     }
     
     service_account = var.branch-hash == "" ? "966844133549-compute@developer.gserviceaccount.com" : "536022346875-compute@developer.gserviceaccount.com"
+    
+
+    enable_delete_protection = var.branch-hash == ""? false : true
 }
 
 variable "project" {

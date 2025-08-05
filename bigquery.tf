@@ -6,6 +6,7 @@ resource "google_bigquery_dataset" "breweries_foundation" {
   dataset_id                  = "breweries_foundation${replace(var.branch-hash, "-", "_")}"
   friendly_name              = "Breweries Foundation Dataset"
   description                = "Dataset for storing brewery data and analytics"
+  delete_contents_on_destroy = local.enable_delete_protection
   labels = {
     project = var.data-project
     type    = "foundation"
