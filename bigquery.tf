@@ -18,7 +18,7 @@ resource "google_bigquery_table" "breweries_all_data" {
   project = var.data-project
   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
   table_id   = "breweries_all_data"
-
+  deletion_protection = !local.enable_delete_protection
   description = "Complete brewery data with transformations and data quality flags"
   
   depends_on = [google_bigquery_dataset.breweries_foundation]
@@ -193,6 +193,7 @@ resource "google_bigquery_table" "breweries_all_data" {
 resource "google_bigquery_table" "breweries_agg_type" {
   dataset_id = google_bigquery_dataset.breweries_foundation.dataset_id
   project = var.data-project
+  deletion_protection = !local.enable_delete_protection
   table_id   = "breweries_agg_type"
   depends_on = [google_bigquery_dataset.breweries_foundation]
   description = "Aggregated brewery data by type with counts, geographic distribution, and contact info metrics"
