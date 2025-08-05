@@ -51,13 +51,17 @@ jobs:
         PROJECT="${{ vars.GCP_PROJECT }}-dev"
         DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}-dev"
         
-        # Create unique hash for this test run
+        # Create unique hash for this test run to avoid conflicts
         TIMESTAMP=$(date +%s)
         TEST_HASH=$(echo -n "test-${TIMESTAMP}" | sha256sum | cut -c1-8)
         BRANCH_HASH="-${TEST_HASH}"
-        
+        RUN_ID="${{ github.run_id }}"
+
         # Set test date
         TEST_DATE=$(date +%Y-%m-%d)
+        
+        # Create unique workspace name for this test
+        WORKSPACE_NAME="-${BRANCH_HASH}"
         
         cat > pipeline.auto.tfvars <<EOF
         region="${{ vars.GCP_REGION }}" 
@@ -71,10 +75,19 @@ jobs:
         echo "branch_hash=$BRANCH_HASH" >> $GITHUB_OUTPUT
         echo "test_date=$TEST_DATE" >> $GITHUB_OUTPUT
         echo "region=${{ vars.GCP_REGION }}" >> $GITHUB_OUTPUT
+        echo "workspace_name=$WORKSPACE_NAME" >> $GITHUB_OUTPUT
 
     # 2. Deploy Infrastructure
     - name: Terraform Init
       run: terraform init
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+    - name: Create and select unique Terraform workspace
+      run: |
+        # Create a unique workspace for this integration test
+        terraform workspace new "${{ steps.vars.outputs.workspace_name }}" || terraform workspace select "${{ steps.vars.outputs.workspace_name }}"
+        echo "Using Terraform workspace: ${{ steps.vars.outputs.workspace_name }}"
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
@@ -109,7 +122,13 @@ jobs:
     # 4. Cleanup (always automatic)
     - name: Cleanup resources
       if: always()
-      run: terraform destroy -auto-approve -input=false
+      run: |
+        # Ensure we're in the correct workspace before destroying
+        terraform workspace select "${{ steps.vars.outputs.workspace_name }}" || true
+        terraform destroy -auto-approve -input=false
+        # Delete the test workspace after cleanup
+        terraform workspace select default
+        terraform workspace delete "${{ steps.vars.outputs.workspace_name }}" || true
       env:
         GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
 
