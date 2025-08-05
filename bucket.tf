@@ -23,6 +23,7 @@ resource "google_storage_bucket" "dataproc-bucket" {
   uniform_bucket_level_access = true
   location = var.region
   labels = local.labels
+  
 }
 
 resource "google_storage_bucket" "function_bucket" {
