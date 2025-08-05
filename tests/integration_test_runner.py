@@ -25,7 +25,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-
 def run_integration_tests(config: TestConfig) -> bool:
     """Run all integration tests."""
     logger.info("🚀 Starting integration test suite...")
