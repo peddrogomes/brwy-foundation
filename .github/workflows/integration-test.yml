@@ -1,0 +1,131 @@
+name: 'Integration Test'
+
+on:
+  workflow_dispatch:
+    inputs:
+      timeout_minutes:
+        description: 'Timeout for the entire test in minutes'
+        required: false
+        default: '30'
+        type: string
+  
+  pull_request:
+    branches: [ main ]
+    types: [ opened, synchronize, reopened ]
+
+permissions:
+  contents: read
+
+jobs:
+  integration-test:
+    name: 'Integration Test'
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: ${{ github.event_name == 'workflow_dispatch' && fromJson(inputs.timeout_minutes || '30') || 30 }}
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+    # 1. Setup
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+
+    - name: Install Python dependencies for testing
+      run: |
+        pip install google-cloud-logging google-cloud-pubsub google-cloud-dataproc google-cloud-bigquery
+
+    - name: Setup terraform variables
+      id: vars
+      run: |-
+        # Use dev environment for integration tests
+        PROJECT="${{ vars.GCP_PROJECT }}-dev"
+        DATA_PROJECT="${{ vars.GCP_DATA_PROJECT }}-dev"
+        
+        # Create unique hash for this test run
+        TIMESTAMP=$(date +%s)
+        TEST_HASH=$(echo -n "test-${TIMESTAMP}" | sha256sum | cut -c1-8)
+        BRANCH_HASH="-${TEST_HASH}"
+        
+        # Set test date
+        TEST_DATE=$(date +%Y-%m-%d)
+        
+        cat > pipeline.auto.tfvars <<EOF
+        region="${{ vars.GCP_REGION }}" 
+        project="$PROJECT" 
+        data-project="$DATA_PROJECT"
+        branch-hash="$BRANCH_HASH"
+        EOF
+        
+        echo "project=$PROJECT" >> $GITHUB_OUTPUT
+        echo "data_project=$DATA_PROJECT" >> $GITHUB_OUTPUT
+        echo "branch_hash=$BRANCH_HASH" >> $GITHUB_OUTPUT
+        echo "test_date=$TEST_DATE" >> $GITHUB_OUTPUT
+        echo "region=${{ vars.GCP_REGION }}" >> $GITHUB_OUTPUT
+
+    # 2. Deploy Infrastructure
+    - name: Terraform Init
+      run: terraform init
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+    - name: Terraform Plan
+      run: terraform plan -input=false
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+    - name: Terraform Apply
+      run: terraform apply -auto-approve -input=false
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+    - name: Wait for infrastructure to be ready
+      run: sleep 30
+
+    # 3. Execute Integration Test
+    - name: Run integration test
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      run: |
+        cd tests
+        python integration_test_runner.py \
+          --project "${{ steps.vars.outputs.project }}" \
+          --data-project "${{ steps.vars.outputs.data_project }}" \
+          --region "${{ steps.vars.outputs.region }}" \
+          --branch-hash "${{ steps.vars.outputs.branch_hash }}" \
+          --test-date "${{ steps.vars.outputs.test_date }}" \
+          --timeout 1800 \
+          --verbose
+
+    # 4. Cleanup (always automatic)
+    - name: Cleanup resources
+      if: always()
+      run: terraform destroy -auto-approve -input=false
+      env:
+        GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+
+    - name: Test Summary
+      if: always()
+      run: |
+        echo "## Integration Test Summary" >> $GITHUB_STEP_SUMMARY
+        echo "- **Trigger**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Test Date**: ${{ steps.vars.outputs.test_date }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Project**: ${{ steps.vars.outputs.project }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Data Project**: ${{ steps.vars.outputs.data_project }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Branch Hash**: ${{ steps.vars.outputs.branch_hash }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **Cleanup Executed**: true (always automatic)" >> $GITHUB_STEP_SUMMARY
+        
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "- **Status**: ✅ SUCCESS" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "- **Status**: ❌ FAILED" >> $GITHUB_STEP_SUMMARY
+        fi
