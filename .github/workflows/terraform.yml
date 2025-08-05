@@ -49,7 +49,7 @@ jobs:
         region="${{ vars.GCP_REGION }}" 
         project="$PROJECT" 
         data-project="$DATA_PROJECT"
-        branch-hash="$BRANCH_NAME"
+        branch-hash="-$BRANCH_NAME"
         EOF
         
     # Initialize a new or existing Terraform working directory by creating initial files, loading any remote state, downloading modules, etc.
