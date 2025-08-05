@@ -85,7 +85,7 @@ jobs:
         TEST_DATE=$(date +%Y-%m-%d)
         
         # Create unique workspace name for this test
-        WORKSPACE_NAME="-${BRANCH_HASH}"
+        WORKSPACE_NAME="test-${BRANCH_HASH}"
         
         cat > pipeline.auto.tfvars <<EOF
         region="${{ vars.GCP_REGION }}" 
