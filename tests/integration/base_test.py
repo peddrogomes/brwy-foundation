@@ -3,10 +3,14 @@
 Base test class for integration tests.
 """
 
+import os
+import json
 import time
 import logging
 from abc import ABC, abstractmethod
 from typing import Dict, Any
+from google.oauth2 import service_account
+from google.auth import default
 from .config import TestConfig
 
 logger = logging.getLogger(__name__)
@@ -21,6 +25,25 @@ class BaseIntegrationTest(ABC):
         self.start_time = None
         self.results = {}
         self.test_name = self.__class__.__name__.replace('Tester', '').lower()
+    
+    def _get_credentials(self):
+        """Get Google Cloud credentials from environment or default."""
+        # Try to get credentials from GitHub Actions environment first
+        creds_json = os.getenv('GOOGLE_CREDENTIALS')
+        if creds_json:
+            logger.debug("Using credentials from GOOGLE_CREDENTIALS env var")
+            try:
+                creds_info = json.loads(creds_json)
+                return service_account.Credentials.from_service_account_info(
+                    creds_info
+                )
+            except (json.JSONDecodeError, KeyError) as e:
+                logger.warning(f"Failed to parse GOOGLE_CREDENTIALS: {e}")
+        
+        # Fallback to default credentials (for local development)
+        logger.debug("Using default credentials")
+        credentials, _ = default()
+        return credentials
     
     def run_tests(self) -> bool:
         """Run all tests for this component."""

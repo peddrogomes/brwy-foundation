@@ -4,11 +4,8 @@ Infrastructure validation tests for the brewery data pipeline.
 """
 
 import logging
-import os
-import json
 from google.cloud import storage
 from google.cloud import pubsub_v1
-from google.oauth2 import service_account
 from .base_test import BaseIntegrationTest
 
 logger = logging.getLogger(__name__)
@@ -21,7 +18,7 @@ class InfrastructureTester(BaseIntegrationTest):
         """Initialize the infrastructure tester."""
         super().__init__(config)
         
-        # Get credentials from GitHub Actions environment
+        # Get credentials using the base class method
         credentials = self._get_credentials()
         project = config.get('project')
         
@@ -30,21 +27,6 @@ class InfrastructureTester(BaseIntegrationTest):
             project=project, credentials=credentials
         )
         self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
-
-    def _get_credentials(self):
-        """Get Google Cloud credentials from GitHub Actions environment."""
-        creds_json = os.getenv('GOOGLE_CREDENTIALS')
-        if not creds_json:
-            raise RuntimeError(
-                "GOOGLE_CREDENTIALS environment variable not found. "
-                "This test should only run in GitHub Actions environment."
-            )
-        
-        logger.debug("Using credentials from GOOGLE_CREDENTIALS env variable")
-        creds_info = json.loads(creds_json)
-        return service_account.Credentials.from_service_account_info(
-            creds_info
-        )
 
     def _execute_tests(self) -> bool:
         """Run all infrastructure validation tests."""

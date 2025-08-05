@@ -32,7 +32,7 @@ def run_integration_tests(config: TestConfig) -> bool:
     
     # Test components in order
     test_classes = [
-        # InfrastructureTester,
+        InfrastructureTester,
         ApiExtractTester,
         DataprocTester,
         BigQueryTester

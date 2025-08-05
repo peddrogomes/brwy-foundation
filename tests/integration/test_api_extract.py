@@ -22,11 +22,18 @@ class ApiExtractTester(BaseIntegrationTest):
         """Initialize the API extract tester."""
         super().__init__(config)
         
-        # Initialize clients
+        # Get credentials using the base class method
+        credentials = self._get_credentials()
         project = config.get('project')
-        self.publisher = pubsub_v1.PublisherClient()
-        self.logging_client = cloud_logging.Client(project=project)
-        self.storage_client = storage.Client(project=project)
+        
+        # Initialize clients
+        self.publisher = pubsub_v1.PublisherClient(credentials=credentials)
+        self.logging_client = cloud_logging.Client(
+            project=project, credentials=credentials
+        )
+        self.storage_client = storage.Client(
+            project=project, credentials=credentials
+        )
 
     def _execute_tests(self) -> bool:
         """Run all API extract tests."""
