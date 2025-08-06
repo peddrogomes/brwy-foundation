@@ -194,9 +194,6 @@ Dessa forma, é possível gerenciar os acessos e custos do time de engenharia e 
 ## Estrutura do Projeto
 
 ```
-├── docs/                     # Documentação e diagramas
-│   ├── pipeline.png          # Fluxo completo do processo
-│   └── actions.png           # GitHub Actions workflows
 ├── *.tf                      # Arquivos Terraform (infraestrutura)
 ├── scr/
 │   ├── functions/            # Cloud Functions
@@ -207,10 +204,23 @@ Dessa forma, é possível gerenciar os acessos e custos do time de engenharia e 
 │       │   ├── load/         # total-load (JSON → Parquet)
 │       │   └── transform/    # total-transform (Parquet → BigQuery)
 ├── scripts/                  # Scripts utilitários
-├── tests/                    # Testes de integração
-└── test/                     # Dados de exemplo
-    ├── bronze/               # Dados brutos de exemplo
-    └── silver/               # Dados processados de exemplo
+├── tests/
+│   ├── integration_test_runner.py  # Executor principal dos testes
+├── integration/
+|       ├── __init__.py
+│       ├── test_infrastructure.py  # Testes de validação da infraestrutura
+│       ├── test_api_extract.py     # Testes da função API Extract
+│       ├── test_dataproc.py        # Testes do fluxo de trabalho Dataproc
+│       ├── test_bigquery.py        # Testes de validação BigQuery
+│       ├── monitor_integration_test.sh     # Script de monitoramento
+│       └── validate_bigquery_data.py       # Validador BigQuery independente
+test/                     # Dados de exemplo
+├── bronze/               # Dados brutos de exemplo
+└── silver/               # Dados processados de exemplo
+└──.github/workflow/          # Actions do github
+├── docs/                     # Documentação e diagramas
+│   ├── pipeline.png          # Fluxo completo do processo
+│   └── actions.png           # GitHub Actions workflows
 ```
 
 
