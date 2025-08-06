@@ -142,9 +142,51 @@ Carregamento para BigQuery (Silver → Gold):
 - `has_contact_info` (BOOLEAN): Se a cervejaria possui informações de contato
 
 #### Views Agregadas
-- **`breweries_by_state`**: Agregação por estado
-- **`breweries_by_type`**: Agregação por tipo
-- Métricas de qualidade (percentual de preenchimento por campo)
+
+##### `breweries_agg_type` - Agregação por tipo de cervejaria
+Métricas agregadas agrupadas por tipo de cervejaria:
+
+**Colunas:**
+- `type_brewery` (STRING): Tipo de cervejaria (micro, brewpub, regional, etc.)
+- `total_breweries` (INTEGER): Total de cervejarias do tipo
+- `countries_count` (INTEGER): Quantidade de países únicos
+- `states_count` (INTEGER): Quantidade de estados únicos
+- `cities_count` (INTEGER): Quantidade de cidades únicas
+- `breweries_with_coordinates` (INTEGER): Cervejarias com coordenadas válidas
+- `coordinates_percentage` (FLOAT): Percentual de cervejarias com coordenadas
+- `breweries_with_contact` (INTEGER): Cervejarias com informações de contato
+- `contact_info_percentage` (FLOAT): Percentual de cervejarias com contato
+- `breweries_with_website` (INTEGER): Cervejarias com website
+- `website_percentage` (FLOAT): Percentual de cervejarias com website
+- `breweries_with_phone` (INTEGER): Cervejarias com telefone
+- `phone_percentage` (FLOAT): Percentual de cervejarias com telefone
+- `latest_data_date` (DATE): Data mais recente dos dados
+- `earliest_data_date` (DATE): Data mais antiga dos dados
+- `last_updated` (TIMESTAMP): Última atualização do processamento
+
+##### `breweries_agg_state` - Agregação por estado
+Métricas agregadas agrupadas por estado:
+
+**Colunas:**
+- `name_state` (STRING): Abreviação do estado
+- `total_breweries` (INTEGER): Total de cervejarias no estado
+- `countries_count` (INTEGER): Quantidade de países únicos
+- `states_count` (INTEGER): Quantidade de estados únicos
+- `cities_count` (INTEGER): Quantidade de cidades únicas
+- `breweries_with_coordinates` (INTEGER): Cervejarias com coordenadas válidas
+- `coordinates_percentage` (FLOAT): Percentual de cervejarias com coordenadas
+- `breweries_with_contact` (INTEGER): Cervejarias com informações de contato
+- `contact_info_percentage` (FLOAT): Percentual de cervejarias com contato
+- `breweries_with_website` (INTEGER): Cervejarias com website
+- `website_percentage` (FLOAT): Percentual de cervejarias com website
+- `breweries_with_phone` (INTEGER): Cervejarias com telefone
+- `phone_percentage` (FLOAT): Percentual de cervejarias com telefone
+- `latest_data_date` (DATE): Data mais recente dos dados
+- `earliest_data_date` (DATE): Data mais antiga dos dados
+- `last_updated` (TIMESTAMP): Última atualização do processamento
+
+Exemplo da breweries_by_type para um dia:
+![Query Type](docs/query_type.png)
 
 ## Infraestrutura e Ambientes
 
