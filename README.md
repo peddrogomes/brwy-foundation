@@ -156,9 +156,14 @@ Carregamento para BigQuery (Silver → Gold):
 - Replicação automática por branch com sufixo "-branch", pensado para desenvolvimento paralelo em grandes equipes
 - Buckets e tabelas no ambiente de desenvolvimento têm proteção de exclusão desativas
 
+##### Exemplo de replicação em dev para branchs e tests:
+![Fluxo do Pipeline](docs/functions.png)
+
 #### Produção
 - `brwy-foundation`
 - `brwy-foundation-pip`
+
+Dessa forma, é possível gerenciar os acessos e custos do time de engenharia e dos usuários do dado separadamente.
 
 ### CI/CD (GitHub Actions)
 ![GitHub Actions](docs/actions.png)
