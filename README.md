@@ -1,67 +1,66 @@
 # brwy-foundation
 
-Sistema escalável de extração, processamento e análise de dados de cervejarias utilizando Google Cloud Platform, via terraform, e API breweries DB. O projeto implementa uma arquitetura tipo medalhão (Bronze/Silver/Gold) com processamento paralelo e orquestração automatizada.
+Scalable system for extraction, processing, and analysis of brewery data using Google Cloud Platform via Terraform and the Breweries DB API. The project implements a medallion architecture (Bronze/Silver/Gold) with parallel processing and automated orchestration.
 
-Esse processo foi pensado para processos escaláveis tanto em processamento quanto em equipe, possibilitando trabalhar com grandes volumes de dados e desenvolvimento paralelo.
+This process is designed for scalable operations in both processing and team structure, enabling work with large data volumes and parallel development.
 
-## Arquitetura Geral
+## General Architecture
 
-O sistema utiliza uma pipeline de dados distribuída com as seguintes características:
+The system uses a distributed data pipeline with the following characteristics:
 
-- **Escalabilidade**: Processamento paralelo através de Pub/Sub e Function
-- **Observabilidade**: Logs centralizados e monitoramento de qualidade de dados
-- **Automação**: CI/CD completo com testes de integração que possibilita o trabalho em várias branchs de desenvolvimento.
+- **Scalability**: Parallel processing through Pub/Sub and Functions
+- **Observability**: Centralized logs and data quality monitoring
+- **Automation**: Complete CI/CD with integration tests enabling work across multiple development branches
 
-### Fluxo do Pipeline
+### Pipeline Flow
 
-![Fluxo do Pipeline](docs/pipeline.png)
+![Pipeline Flow](docs/pipeline.png)
 
-### Camadas de Dados
+### Data Layers
 
-- **Bronze**: Dados brutos em formato JSON organizados por data
-- **Silver**: Dados processados em formato Parquet com tipagem e limpeza
-- **Gold**: Dados agregados no BigQuery com views analíticas
+- **Bronze**: Raw data in JSON format organized by date
+- **Silver**: Processed data in Parquet format with typing and cleansing
+- **Gold**: Aggregated data in BigQuery with analytical views
 
-## Componentes do Sistema
+## System Components
 
-###  Extração de Dados (API-Extract Function)
+### Data Extraction (API-Extract Function)
 
-Essa função é responsável pela extração de dados da Open Brewery DB API com suporte a diferentes tipos de extração:
+This function is responsible for extracting data from the Open Brewery DB API with support for different extraction types:
 
-- **`all`**: Extração completa de todas as cervejarias
-- **`by_state`**: Extração por estado (em desenvolvimento)  
-- **`by_type`**: Extração por tipo (em desenvolvimento)
+- **`all`**: Complete extraction of all breweries
+- **`by_state`**: Extraction by state (in development)
+- **`by_type`**: Extraction by type (in development)
 
 ```json
 {
-  "type": "all",// pode ser by_state ou by_type
-  "extract_page": 1, // opcional, para processamento de uma pagina especifica
-  "state": "Busan",     // obrigatorio, para by_state
-  "brewery_type": "micro"  // obrigatorio, para by_type
+  "type": "all", // can be by_state or by_type
+  "extract_page": 1, // optional, for processing a specific page
+  "state": "Busan", // required for by_state
+  "brewery_type": "micro" // required for by_type
 }
 ```
 
-**Funcionalidades:**
+**Features:**
 
-- A function inicia o processo consultando o endpoind de metadados, calcula a quantidade de paginas e se auto dispara, via pub/sub, para cada pagina.
+- The function starts the process by querying the metadata endpoint, calculates the number of pages, and self-triggers via Pub/Sub for each page.
 
-- Cada pagina disparada, por sua vez, extrai os dados e salva em formato JSON no bucket Bronze, além de atualizar as informaçôes no Firestore de forma atômica (transacional).
+- Each triggered page extracts the data and saves it in JSON format to the Bronze bucket, in addition to updating information in Firestore atomically (transactionally).
 
-- Ao verificar que todos os arquivos foram registrados no Firestore, a function publica uma mensagem no `trigger-dataproc-topic` com intuito de disparar o processo de transformação.
+- Upon verifying that all files have been registered in Firestore, the function publishes a message to the `trigger-dataproc-topic` to trigger the transformation process.
 
-#### Formato dos arquivo JSON (Bucket Bronze)
+#### JSON File Format (Bronze Bucket)
 ```
 gs://bucket-bronze/YYYY-MM-DD/YYYY-MM-DD_page_XX.json
 ```
 
-### Controle Transacional (Firestore)
+### Transactional Control (Firestore)
 
-Gerencia o estado da extração através da coleção `extraction_job`:
-- É utilizado o decorator @firestore.transacional para registrar a pagina processada e consultar a quantidade de paginas totais e comparar com a quantidade de paginas processadas.
-- Esse processo garante o rastreamento do progresso da extração, além de, contornar os problemas de concorrencia garantindo disparo unico para o `trigger-dataproc`.
+Manages extraction state through the `extraction_job` collection:
+- Uses the @firestore.transactional decorator to register processed pages and query total pages, comparing with the number of processed pages.
+- This process ensures extraction progress tracking and addresses concurrency issues, guaranteeing a single trigger for `trigger-dataproc`.
 
-
-#### Estrutura do Documento Firestore
+#### Firestore Document Structure
 ```json
 {
   "date": "2025-08-05",
@@ -81,192 +80,191 @@ Gerencia o estado da extração através da coleção `extraction_job`:
 }
 ```
 
-###  Orquestração (Trigger Dataproc Function)
+### Orchestration (Trigger Dataproc Function)
 
-Função responsável por disparar os jobs Dataproc baseado no tipo de extração:
+Function responsible for triggering Dataproc jobs based on extraction type:
 
-- Orquestração de templates Dataproc
-- Passagem de parâmetros dinâmicos
-- Monitoramento de execução
+- Dataproc template orchestration
+- Dynamic parameter passing
+- Execution monitoring
 
-###  Processamento de Dados (Jobs Dataproc PySpark)
+### Data Processing (Dataproc PySpark Jobs)
 
-Para o processo do Dataproc foi utilizado as configurações:
+For the Dataproc process, the following configurations were used:
 - **Machine Type**: n1-standard-2
 - **Worker Nodes**: 2
-- **Spark Properties**: Configurações otimizadas para BigQuery, alocação dinâmica e sql adaptativo.
+- **Spark Properties**: Optimized configurations for BigQuery, dynamic allocation, and adaptive SQL.
 
 #### Step total-load:
-Transformação de JSON para Parquet (Bronze → Silver):
-- Renomeação e padronização de colunas
-- Tipagem adequada de campos
-- Particionamento por data
+Transformation from JSON to Parquet (Bronze → Silver):
+- Column renaming and standardization
+- Appropriate field typing
+- Date-based partitioning
 
 #### Step total-transform:
-Carregamento para BigQuery (Silver → Gold):
-- Aplicação de regras de negócio
-- Validação de qualidade de dados
-- Carregamento na tabela `breweries-all-data`
+Loading to BigQuery (Silver → Gold):
+- Application of business rules
+- Data quality validation
+- Loading to `breweries-all-data` table
 
-### Camada Analítica (BigQuery)
+### Analytical Layer (BigQuery)
 
-#### Tabela Principal
-- **`breweries-all-data`**: Dados consolidados de todas as cervejarias
-- Particionados por data e clusterizados por type e state
+#### Main Table
+- **`breweries-all-data`**: Consolidated data from all breweries
+- Partitioned by date and clustered by type and state
 
-**Campos da tabela:**
-- `id_brewery` (STRING): Identificador único da cervejaria
-- `name_brewery` (STRING): Nome da cervejaria
-- `type_brewery` (STRING): Tipo de cervejaria (micro, brewpub, etc.)
-- `address_line_1` (STRING): Primeira linha do endereço
-- `address_line_2` (STRING): Segunda linha do endereço
-- `address_line_3` (STRING): Terceira linha do endereço
-- `name_city` (STRING): Nome da cidade
-- `name_state_province` (STRING): Nome do estado ou província
-- `value_postal_code` (STRING): Código postal/CEP
-- `name_country` (STRING): Nome do país
-- `longitude` (FLOAT): Coordenada de longitude
-- `latitude` (FLOAT): Coordenada de latitude
-- `phone` (STRING): Número de telefone
-- `url_website` (STRING): URL do website
-- `name_state` (STRING): Abreviação do estado
-- `name_street` (STRING): Nome da rua
-- `processing_date` (DATE): Data de processamento do registro
-- `processing_timestamp` (TIMESTAMP): Timestamp de processamento
-- `source_date` (DATE): Data dos dados de origem
-- `full_address` (STRING): Endereço completo formatado
-- `year` (INTEGER): Ano da data de origem
-- `month` (INTEGER): Mês da data de origem
-- `day` (INTEGER): Dia da data de origem
-- `has_coordinates` (BOOLEAN): Se a cervejaria possui coordenadas válidas
-- `has_contact_info` (BOOLEAN): Se a cervejaria possui informações de contato
+**Table Fields:**
+- `id_brewery` (STRING): Unique brewery identifier
+- `name_brewery` (STRING): Brewery name
+- `type_brewery` (STRING): Brewery type (micro, brewpub, etc.)
+- `address_line_1` (STRING): First address line
+- `address_line_2` (STRING): Second address line
+- `address_line_3` (STRING): Third address line
+- `name_city` (STRING): City name
+- `name_state_province` (STRING): State or province name
+- `value_postal_code` (STRING): Postal/ZIP code
+- `name_country` (STRING): Country name
+- `longitude` (FLOAT): Longitude coordinate
+- `latitude` (FLOAT): Latitude coordinate
+- `phone` (STRING): Phone number
+- `url_website` (STRING): Website URL
+- `name_state` (STRING): State abbreviation
+- `name_street` (STRING): Street name
+- `processing_date` (DATE): Record processing date
+- `processing_timestamp` (TIMESTAMP): Processing timestamp
+- `source_date` (DATE): Source data date
+- `full_address` (STRING): Formatted full address
+- `year` (INTEGER): Year from source date
+- `month` (INTEGER): Month from source date
+- `day` (INTEGER): Day from source date
+- `has_coordinates` (BOOLEAN): Whether brewery has valid coordinates
+- `has_contact_info` (BOOLEAN): Whether brewery has contact information
 
-#### Views Agregadas
+#### Aggregated Views
 
-##### `breweries_agg_type` - Agregação por tipo de cervejaria
-Métricas agregadas agrupadas por tipo de cervejaria:
+##### `breweries_agg_type` - Aggregation by brewery type
+Aggregated metrics grouped by brewery type:
 
-**Colunas:**
-- `type_brewery` (STRING): Tipo de cervejaria (micro, brewpub, regional, etc.)
-- `total_breweries` (INTEGER): Total de cervejarias do tipo
-- `countries_count` (INTEGER): Quantidade de países únicos
-- `states_count` (INTEGER): Quantidade de estados únicos
-- `cities_count` (INTEGER): Quantidade de cidades únicas
-- `breweries_with_coordinates` (INTEGER): Cervejarias com coordenadas válidas
-- `coordinates_percentage` (FLOAT): Percentual de cervejarias com coordenadas
-- `breweries_with_contact` (INTEGER): Cervejarias com informações de contato
-- `contact_info_percentage` (FLOAT): Percentual de cervejarias com contato
-- `breweries_with_website` (INTEGER): Cervejarias com website
-- `website_percentage` (FLOAT): Percentual de cervejarias com website
-- `breweries_with_phone` (INTEGER): Cervejarias com telefone
-- `phone_percentage` (FLOAT): Percentual de cervejarias com telefone
-- `latest_data_date` (DATE): Data mais recente dos dados
-- `earliest_data_date` (DATE): Data mais antiga dos dados
-- `last_updated` (TIMESTAMP): Última atualização do processamento
+**Columns:**
+- `type_brewery` (STRING): Brewery type (micro, brewpub, regional, etc.)
+- `total_breweries` (INTEGER): Total breweries of this type
+- `countries_count` (INTEGER): Number of unique countries
+- `states_count` (INTEGER): Number of unique states
+- `cities_count` (INTEGER): Number of unique cities
+- `breweries_with_coordinates` (INTEGER): Breweries with valid coordinates
+- `coordinates_percentage` (FLOAT): Percentage of breweries with coordinates
+- `breweries_with_contact` (INTEGER): Breweries with contact information
+- `contact_info_percentage` (FLOAT): Percentage of breweries with contact
+- `breweries_with_website` (INTEGER): Breweries with website
+- `website_percentage` (FLOAT): Percentage of breweries with website
+- `breweries_with_phone` (INTEGER): Breweries with phone
+- `phone_percentage` (FLOAT): Percentage of breweries with phone
+- `latest_data_date` (DATE): Most recent data date
+- `earliest_data_date` (DATE): Earliest data date
+- `last_updated` (TIMESTAMP): Last processing update
 
-##### `breweries_agg_state` - Agregação por estado
-Métricas agregadas agrupadas por estado:
+##### `breweries_agg_state` - Aggregation by state
+Aggregated metrics grouped by state:
 
-**Colunas:**
-- `name_state` (STRING): Abreviação do estado
-- `total_breweries` (INTEGER): Total de cervejarias no estado
-- `countries_count` (INTEGER): Quantidade de países únicos
-- `states_count` (INTEGER): Quantidade de estados únicos
-- `cities_count` (INTEGER): Quantidade de cidades únicas
-- `breweries_with_coordinates` (INTEGER): Cervejarias com coordenadas válidas
-- `coordinates_percentage` (FLOAT): Percentual de cervejarias com coordenadas
-- `breweries_with_contact` (INTEGER): Cervejarias com informações de contato
-- `contact_info_percentage` (FLOAT): Percentual de cervejarias com contato
-- `breweries_with_website` (INTEGER): Cervejarias com website
-- `website_percentage` (FLOAT): Percentual de cervejarias com website
-- `breweries_with_phone` (INTEGER): Cervejarias com telefone
-- `phone_percentage` (FLOAT): Percentual de cervejarias com telefone
-- `latest_data_date` (DATE): Data mais recente dos dados
-- `earliest_data_date` (DATE): Data mais antiga dos dados
-- `last_updated` (TIMESTAMP): Última atualização do processamento
+**Columns:**
+- `name_state` (STRING): State abbreviation
+- `total_breweries` (INTEGER): Total breweries in state
+- `countries_count` (INTEGER): Number of unique countries
+- `states_count` (INTEGER): Number of unique states
+- `cities_count` (INTEGER): Number of unique cities
+- `breweries_with_coordinates` (INTEGER): Breweries with valid coordinates
+- `coordinates_percentage` (FLOAT): Percentage of breweries with coordinates
+- `breweries_with_contact` (INTEGER): Breweries with contact information
+- `contact_info_percentage` (FLOAT): Percentage of breweries with contact
+- `breweries_with_website` (INTEGER): Breweries with website
+- `website_percentage` (FLOAT): Percentage of breweries with website
+- `breweries_with_phone` (INTEGER): Breweries with phone
+- `phone_percentage` (FLOAT): Percentage of breweries with phone
+- `latest_data_date` (DATE): Most recent data date
+- `earliest_data_date` (DATE): Earliest data date
+- `last_updated` (TIMESTAMP): Last processing update
 
-Exemplo da breweries_by_type para um dia:
+Example of breweries_by_type for one day:
 ![Query Type](docs/query_type.png)
 
-## Infraestrutura e Ambientes
+## Infrastructure and Environments
 
-### Ambientes
+### Environments
 
-#### Desenvolvimento
+#### Development
 - `brwy-foundation-dev`
 - `brwy-foundation-pip-dev`
-- Replicação automática por branch com sufixo "-branch", pensado para desenvolvimento paralelo em grandes equipes
-- Buckets e tabelas no ambiente de desenvolvimento têm proteção de exclusão desativas
+- Automatic replication per branch with "-branch" suffix, designed for parallel development in large teams
+- Buckets and tables in development environment have deletion protection disabled
 
-##### Exemplo de replicação em dev para branchs e tests:
-![Fluxo do Pipeline](docs/functions.png)
+##### Example of replication in dev for branches and tests:
+![Pipeline Flow](docs/functions.png)
 
-#### Produção
+#### Production
 - `brwy-foundation`
 - `brwy-foundation-pip`
 
-Dessa forma, é possível gerenciar os acessos e custos do time de engenharia e dos usuários do dado separadamente.
+This approach enables separate management of access and costs for the engineering team and data users.
 
 ### CI/CD (GitHub Actions)
 ![GitHub Actions](docs/actions.png)
 
 #### terraform.yml
-- Deploy automático a cada push
-- Reimplementação de infraestrutura alterada
-- Validação de sintaxe Terraform
+- Automatic deployment on every push
+- Redeployment of modified infrastructure
+- Terraform syntax validation
 
 #### integration-test.yml
-- Criação de infraestrutura temporária (sufixo hash)
-- Teste end-to-end completo:
-  - Disparo da `test_api_extract`
-  - Monitoramento de logs das functions
-  - Validação de execução Dataproc
-  - Testes de qualidade no BigQuery
-- Limpeza automática de recursos
+- Creation of temporary infrastructure (hash suffix)
+- Complete end-to-end testing:
+  - Trigger of `test_api_extract`
+  - Function log monitoring
+  - Dataproc execution validation
+  - BigQuery quality tests
+- Automatic resource cleanup
 
-## Operação e Monitoramento
+## Operation and Monitoring
 
-### Agendamento
-- Execução diária às 09:00 (horário de Brasília)
-- Histórico incremental dia-a-dia
+### Scheduling
+- Daily execution at 09:00 (Brasília time)
+- Day-by-day incremental history
 
-### Armazenamento Temporal
-- O processo foi pensado para manter um histórico de dados organizados por data de extração, pensando no rastreamento de mudanças de tipo de cervejarias e identificação de registro de novas cervejarias
+### Temporal Storage
+- The process is designed to maintain a historical record of data organized by extraction date, enabling tracking of brewery type changes and identification of new brewery registrations
 
-## Estrutura do Projeto
+## Project Structure
 
 ```
-├── *.tf                      # Arquivos Terraform (infraestrutura)
+├── *.tf                      # Terraform files (infrastructure)
 ├── scr/
 │   ├── functions/            # Cloud Functions
-│   │   ├── api-extract/      # Extração de dados da API
-│   │   └── trigger-dataproc/ # Orquestração Dataproc
-│   └── dataproc/            # Jobs PySpark
+│   │   ├── api-extract/      # API data extraction
+│   │   └── trigger-dataproc/ # Dataproc orchestration
+│   └── dataproc/            # PySpark jobs
 │       ├── breweries/
 │       │   ├── load/         # total-load (JSON → Parquet)
 │       │   └── transform/    # total-transform (Parquet → BigQuery)
-├── scripts/                  # Scripts utilitários
+├── scripts/                  # Utility scripts
 ├── tests/
-│   ├── integration_test_runner.py  # Executor principal dos testes
+│   ├── integration_test_runner.py  # Main test runner
 ├── integration/
 |       ├── __init__.py
-│       ├── test_infrastructure.py  # Testes de validação da infraestrutura
-│       ├── test_api_extract.py     # Testes da função API Extract
-│       ├── test_dataproc.py        # Testes do fluxo de trabalho Dataproc
-│       ├── test_bigquery.py        # Testes de validação BigQuery
-│       ├── monitor_integration_test.sh     # Script de monitoramento
-│       └── validate_bigquery_data.py       # Validador BigQuery independente
-test/                     # Dados de exemplo
-├── bronze/               # Dados brutos de exemplo
-└── silver/               # Dados processados de exemplo
-└──.github/workflow/          # Actions do github
-├── docs/                     # Documentação e diagramas
-│   ├── pipeline.png          # Fluxo completo do processo
+│       ├── test_infrastructure.py  # Infrastructure validation tests
+│       ├── test_api_extract.py     # API Extract function tests
+│       ├── test_dataproc.py        # Dataproc workflow tests
+│       ├── test_bigquery.py        # BigQuery validation tests
+│       ├── monitor_integration_test.sh     # Monitoring script
+│       └── validate_bigquery_data.py       # Independent BigQuery validator
+test/                     # Sample data
+├── bronze/               # Raw sample data
+└── silver/               # Processed sample data
+└──.github/workflow/          # GitHub Actions
+├── docs/                     # Documentation and diagrams
+│   ├── pipeline.png          # Complete process flow
 │   └── actions.png           # GitHub Actions workflows
 ```
 
-
-## Referências Técnicas
+## Technical References
 
 - [Terraform GCP Guide](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
 - [Setup Actions](https://developer.hashicorp.com/terraform/tutorials/gcp-get-started/google-cloud-platform-build)
